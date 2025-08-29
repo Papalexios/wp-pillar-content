@@ -21,6 +21,5 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ steps }) => {
     </ul>
   );
 };
-</thinking>
 
 export default ProgressBar;
