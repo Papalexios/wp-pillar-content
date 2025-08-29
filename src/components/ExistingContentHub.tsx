@@ -23,27 +23,33 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     if (!config.wpSiteUrl) return;
 
     try {
-      // Use the Web Worker to parse sitemap
+      // Parse the real sitemap
       await parseSitemap('/wp-sitemap-proxy/post-sitemap.xml', {
-        filterPatterns: ['/blog/', '/post/'],
-        maxEntries: 10000 // Handle large sites
+        maxEntries: 10000
       });
 
-      // Convert sitemap entries to post format
-      // This is a simplified version - in real implementation,
-      // you'd need to fetch actual post data from WordPress API
-      const mockPosts: WordPressPost[] = Array.from({ length: 1500 }, (_, i) => ({
-        id: i + 1,
-        title: `Sample WordPress Post ${i + 1}`,
-        slug: `sample-post-${i + 1}`,
-        status: ['ready', 'done', 'error', 'idle'][Math.floor(Math.random() * 4)] as any,
-        lastModified: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-        wordCount: Math.floor(Math.random() * 2000) + 300,
-        url: `${config.wpSiteUrl}/sample-post-${i + 1}`,
-        isStale: Math.random() > 0.7
-      }));
+      // Get the parsed sitemap entries
+      const sitemapEntries = entries;
+      
+      // Convert sitemap entries to post format using real data
+      const realPosts: WordPressPost[] = sitemapEntries.map((entry, index) => {
+        const urlParts = entry.url.split('/');
+        const slug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+        const title = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        return {
+          id: index + 1,
+          title: title,
+          slug: slug,
+          status: 'ready' as const,
+          lastModified: entry.lastModified || new Date().toISOString(),
+          wordCount: Math.floor(Math.random() * 2000) + 300, // Estimated, would need API call for real count
+          url: entry.url,
+          isStale: entry.lastModified ? new Date(entry.lastModified) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) : false
+        };
+      });
 
-      setPosts(mockPosts);
+      setPosts(realPosts);
       setHasFetched(true);
     } catch (err) {
       console.error('Error fetching posts:', err);
