@@ -9,7 +9,11 @@ export default defineConfig(({ mode }) => {
           '/wp-sitemap-proxy': {
             target: 'https://mysticaldigits.com',
             changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/wp-sitemap-proxy/, '')
+            rewrite: (path) => path.replace(/^\/wp-sitemap-proxy/, ''),
+            secure: true,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
           }
         }
       },
