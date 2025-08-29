@@ -24,7 +24,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
 
     try {
       // Use the Web Worker to parse sitemap
-      await parseSitemap(`${config.wpSiteUrl}/sitemap.xml`, {
+      await parseSitemap('/wp-sitemap-proxy/sitemap.xml', {
         filterPatterns: ['/blog/', '/post/'],
         maxEntries: 10000 // Handle large sites
       });
