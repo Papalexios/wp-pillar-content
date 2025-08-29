@@ -3,11 +3,11 @@ import ReactDOM from 'react-dom/client';
 import { App } from './src/App';
 
 // Performance monitoring
-import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
+import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
 
 // Log performance metrics
 onCLS(console.log);
-onFID(console.log);
+onINP(console.log);
 onFCP(console.log);
 onLCP(console.log);
 onTTFB(console.log);
