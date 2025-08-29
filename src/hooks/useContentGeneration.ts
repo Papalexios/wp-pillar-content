@@ -301,10 +301,11 @@ export const useContentGeneration = (config: any) => {
     if (!response.ok) {
       throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
     }
-  };
+
 
     const data = await response.json();
     return data.choices?.[0]?.message?.content || 'No response generated';
+  };
   return {
     generateClusterContent,
     generateSingleArticle,

@@ -1,9 +1,9 @@
 import React, { Suspense, lazy } from 'react';
 
 // Lazy load heavy components
-const StrategistHub = lazy(() => import('./StrategistHub'));
-const SingleArticleHub = lazy(() => import('./SingleArticleHub'));
-const ExistingContentHub = lazy(() => import('./ExistingContentHub'));
+const StrategistHub = lazy(() => import('./StrategistHub.tsx'));
+const SingleArticleHub = lazy(() => import('./SingleArticleHub.tsx'));
+const ExistingContentHub = lazy(() => import('./ExistingContentHub.tsx'));
 
 interface ContentStepProps {
   config: any;
