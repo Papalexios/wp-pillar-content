@@ -151,6 +151,36 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
                 Enter your WordPress site URL. We'll use this to fetch your existing content and generate improvements.
               </div>
             </div>
+            
+            <div className="form-group">
+              <label htmlFor="wpUsername">WordPress Username</label>
+              <input
+                type="text"
+                id="wpUsername"
+                value={config.wpUsername || ''}
+                onChange={(e) => setConfig(prev => ({ ...prev, wpUsername: e.target.value }))}
+                placeholder="your-username"
+                required
+              />
+              <div className="help-text">
+                Your WordPress admin username for API authentication.
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="wpAppPassword">WordPress Application Password</label>
+              <input
+                type="password"
+                id="wpAppPassword"
+                value={config.wpAppPassword || ''}
+                onChange={(e) => setConfig(prev => ({ ...prev, wpAppPassword: e.target.value }))}
+                placeholder="xxxx xxxx xxxx xxxx"
+                required
+              />
+              <div className="help-text">
+                Generate an Application Password in WordPress Admin → Users → Your Profile → Application Passwords.
+              </div>
+            </div>
           </fieldset>
 
           <fieldset className="config-fieldset">
