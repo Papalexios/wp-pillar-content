@@ -306,7 +306,7 @@ export const useContentGeneration = (config: any) => {
     const data = await response.json();
     return data.choices?.[0]?.message?.content || 'No response generated';
   };
-  return {
+
     generateClusterContent,
     generateSingleArticle,
     generateBulkContent,
