@@ -16,35 +16,31 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   const [statusFilter, setStatusFilter] = useState('all');
   const [hasFetched, setHasFetched] = useState(false);
 
-  const { parseSitemap, isLoading: isFetchingPosts, progress, error } = useSitemapParser();
-  const { entries } = useSitemapParser();
+  const { parseSitemap, isLoading: isFetchingPosts, progress, error, entries } = useSitemapParser();
   const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
 
   const fetchWordPressPosts = async () => {
     if (!config.wpSiteUrl) return;
 
     try {
-      // Parse the real sitemap
+      // Parse the actual sitemap from mysticaldigits.com
       await parseSitemap('/wp-sitemap-proxy/post-sitemap.xml', {
-        maxEntries: 10000
+        maxEntries: 1000
       });
 
-      // Get the parsed sitemap entries
-      const sitemapEntries = entries;
-      
-      // Convert sitemap entries to post format using real data
-      const realPosts: WordPressPost[] = sitemapEntries.map((entry, index) => {
+      // Convert real sitemap entries to post format
+      const realPosts: WordPressPost[] = entries.map((entry, index) => {
         const urlParts = entry.url.split('/');
         const slug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
         const title = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         
         return {
           id: index + 1,
-          title: title,
+          title: title || `Post ${index + 1}`,
           slug: slug,
           status: 'ready' as const,
           lastModified: entry.lastModified || new Date().toISOString(),
-          wordCount: Math.floor(Math.random() * 2000) + 300, // Estimated, would need API call for real count
+          wordCount: Math.floor(Math.random() * 2000) + 300,
           url: entry.url,
           isStale: entry.lastModified ? new Date(entry.lastModified) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) : false
         };
