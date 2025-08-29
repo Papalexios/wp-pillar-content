@@ -17,6 +17,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   const [hasFetched, setHasFetched] = useState(false);
 
   const { parseSitemap, isLoading: isFetchingPosts, progress, error } = useSitemapParser();
+  const { entries } = useSitemapParser();
   const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
 
   const fetchWordPressPosts = async () => {
