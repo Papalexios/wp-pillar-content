@@ -478,34 +478,44 @@ Return only the HTML content for the post body (no meta tags or titles).`
   };
 
   const callOpenRouter = async (apiKey: string, model: string, messages: any[], retryCount = 0): Promise<string> => {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin,
-        'X-Title': document.title || 'WP Content Optimizer'
-      },
-      body: JSON.stringify({ 
-        model, 
-        messages,
-        temperature: 0.7
-      })
-    });
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.origin,
+          'X-Title': document.title || 'WP Content Optimizer'
+        },
+        body: JSON.stringify({ 
+          model, 
+          messages,
+          temperature: 0.7
+        })
+      });
 
-    if (!response.ok) {
-      if (response.status === 429 && retryCount < 3) {
-        // Exponential backoff: 2^retryCount seconds
+      if (!response.ok) {
+        if (response.status === 429 && retryCount < 3) {
+          // Exponential backoff: 2^retryCount seconds
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.log(`Rate limited. Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return callOpenRouter(apiKey, model, messages, retryCount + 1);
+        }
+        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || 'No response generated';
+    } catch (error) {
+      if (retryCount < 3) {
         const delay = Math.pow(2, retryCount) * 1000;
-        console.log(`Rate limited. Retrying in ${delay}ms...`);
+        console.log(`Network error. Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return callOpenRouter(apiKey, model, messages, retryCount + 1);
       }
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+      throw error;
     }
-
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || 'No response generated';
   };
 
   return {
