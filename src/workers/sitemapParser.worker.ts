@@ -36,7 +36,7 @@ self.addEventListener('message', async (event: MessageEvent<SitemapParseMessage>
     // Post progress update
     self.postMessage({ type: 'PROGRESS', message: 'Parsing XML...' });
     
-    const parser = new self.DOMParser();
+    const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
     
     // Check for parsing errors
