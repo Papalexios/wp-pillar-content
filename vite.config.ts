@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
       server: {
         proxy: {
           '/wp-sitemap-proxy': {
-            target: 'https://example-wordpress-site.com', // Update this to your WordPress site URL
+            target: 'https://mysticaldigits.com',
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/wp-sitemap-proxy/, '')
           }
