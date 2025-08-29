@@ -257,12 +257,54 @@ export const useContentGeneration = (config: any) => {
   };
 
   const callAIService = async (prompt: string): Promise<string> => {
-    // This would call your selected AI provider based on config
-    // For now, simulate with a delay
+    switch (config.selectedProvider) {
+      case 'openrouter':
+        return await callOpenRouter(config.openrouterApiKey, config.openrouterModel, [
+          { role: 'user', content: prompt }
+        ]);
+      case 'gemini':
+        // Call Gemini API
+        break;
+      case 'openai':
+        // Call OpenAI API
+        break;
+      case 'anthropic':
+        // Call Anthropic API
+        break;
+      default:
+        // Simulate with delay for now
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return 'Generated content would be returned here';
+    }
+    
+    // Fallback
     await new Promise(resolve => setTimeout(resolve, 1000));
     return 'Generated content would be returned here';
   };
 
+  const callOpenRouter = async (apiKey: string, model: string, messages: any[]): Promise<string> => {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': document.title || 'WP Content Optimizer'
+      },
+      body: JSON.stringify({ 
+        model, 
+        messages,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+    }
+  };
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || 'No response generated';
   return {
     generateClusterContent,
     generateSingleArticle,

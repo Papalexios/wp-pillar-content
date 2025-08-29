@@ -16,42 +16,60 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   const [statusFilter, setStatusFilter] = useState('all');
   const [hasFetched, setHasFetched] = useState(false);
 
-  const { parseSitemap, isLoading: isFetchingPosts, progress, error, entries } = useSitemapParser();
+  const { entries, isLoading: isFetchingPosts, progress, error, discoverAndParseSitemap } = useSitemapParser();
   const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
+
+  const extractTitleFromUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      const slug = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2] || 'post';
+      
+      // Convert slug to title: "my-post-title" -> "My Post Title"
+      return slug
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase())
+        .replace(/\.(html|php)$/i, '');
+    } catch {
+      return url;
+    }
+  };
 
   const fetchWordPressPosts = async () => {
     if (!config.wpSiteUrl) return;
 
     try {
-      // Parse the actual sitemap from mysticaldigits.com
-      await parseSitemap('/wp-sitemap-proxy/post-sitemap.xml', {
-        maxEntries: 1000
-      });
-
-      // Convert real sitemap entries to post format
-      const realPosts: WordPressPost[] = entries.map((entry, index) => {
-        const urlParts = entry.url.split('/');
-        const slug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
-        const title = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        
-        return {
-          id: index + 1,
-          title: title || `Post ${index + 1}`,
-          slug: slug,
-          status: 'ready' as const,
-          lastModified: entry.lastModified || new Date().toISOString(),
-          wordCount: Math.floor(Math.random() * 2000) + 300,
-          url: entry.url,
-          isStale: entry.lastModified ? new Date(entry.lastModified) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) : false
-        };
-      });
-
-      setPosts(realPosts);
+      await discoverAndParseSitemap(config.wpSiteUrl);
       setHasFetched(true);
     } catch (err) {
       console.error('Error fetching posts:', err);
     }
   };
+
+  // Convert sitemap entries to posts when entries change
+  useEffect(() => {
+    if (entries.length > 0) {
+      const convertedPosts: WordPressPost[] = entries.map((entry, index) => {
+        const title = extractTitleFromUrl(entry.url);
+        const isStale = entry.lastModified ? 
+          new Date(entry.lastModified) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) : 
+          false;
+        
+        return {
+          id: index + 1,
+          title,
+          slug: entry.url.split('/').pop() || `post-${index + 1}`,
+          status: 'ready' as const,
+          lastModified: entry.lastModified || new Date().toISOString(),
+          wordCount: Math.floor(Math.random() * 2000) + 300, // This would be fetched from actual content
+          url: entry.url,
+          isStale
+        };
+      });
+
+      setPosts(convertedPosts);
+    }
+  }, [entries]);
 
   const handlePostSelect = (postId: number) => {
     setSelectedPosts(prev => {
@@ -104,7 +122,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       <div className="fetch-posts-prompt">
         <h2>Analyze Existing Content</h2>
         <p>
-          Fetch your WordPress posts to identify optimization opportunities and bulk-update content.
+          Discover and fetch your WordPress posts from sitemaps to identify optimization opportunities.
         </p>
         
         {isFetchingPosts && (
@@ -118,7 +136,12 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
         
         {error && (
           <div className="result error">
-            Error: {error}
+            <strong>Sitemap Discovery Failed:</strong> {error}
+            <br />
+            <small>
+              Make sure your WordPress site has a sitemap at one of these locations: 
+              /wp-sitemap.xml, /post-sitemap.xml, /sitemap_index.xml, or /sitemap.xml
+            </small>
           </div>
         )}
 
@@ -131,12 +154,18 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
           {isFetchingPosts ? (
             <>
               <div className="spinner" style={{ width: '20px', height: '20px' }}></div>
-              Fetching Posts...
+              Discovering & Fetching Posts...
             </>
           ) : (
             'Fetch WordPress Posts'
           )}
         </button>
+        
+        {!config.wpSiteUrl && (
+          <div className="help-text" style={{ marginTop: '1rem', textAlign: 'center' }}>
+            Please configure your WordPress site URL in the previous step.
+          </div>
+        )}
       </div>
     );
   }
@@ -146,8 +175,14 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       <div style={{ marginBottom: '2rem' }}>
         <h2>Update Existing Content</h2>
         <p>
-          Select posts to optimize with AI-generated improvements, E-E-A-T signals, and enhanced schema markup.
+          Found {posts.length} posts from your WordPress sitemap. Select posts to optimize with AI-generated improvements.
         </p>
+        
+        {entries.length > 0 && (
+          <div className="result success" style={{ marginBottom: '2rem' }}>
+            ✅ Successfully loaded {entries.length} URLs from sitemap
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '1rem', marginBottom: '2rem' }}>

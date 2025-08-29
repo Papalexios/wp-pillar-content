@@ -34,11 +34,28 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
     setKeyStatuses(prev => ({ ...prev, [provider]: 'validating' }));
 
     try {
-      // Simulate API key validation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Basic format validation
       let isValid = false;
+      
+      if (provider === 'openrouter') {
+        // Test OpenRouter API key with a simple call
+        try {
+          const response = await fetch('https://openrouter.ai/api/v1/models', {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'HTTP-Referer': window.location.origin,
+              'X-Title': document.title || 'WP Content Optimizer'
+            }
+          });
+          isValid = response.ok;
+        } catch {
+          isValid = false;
+        }
+      } else {
+        // Simulate validation for other providers
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Basic format validation
+      }
       switch (provider) {
         case 'gemini':
           isValid = apiKey.startsWith('AIza') && apiKey.length > 20;
@@ -50,7 +67,7 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
           isValid = apiKey.startsWith('sk-ant-') && apiKey.length > 20;
           break;
         case 'openrouter':
-          isValid = apiKey.startsWith('sk-or-') && apiKey.length > 20;
+          // Already validated above with actual API call
           break;
       }
 
@@ -146,7 +163,7 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
                 <option value="gemini">Google Gemini (Recommended)</option>
                 <option value="openai">OpenAI GPT-4</option>
                 <option value="anthropic">Anthropic Claude</option>
-                <option value="openrouter">OpenRouter (Any Model)</option>
+                <option value="openrouter">OpenRouter</option>
               </select>
             </div>
 
@@ -218,17 +235,17 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
                   </div>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="openrouterModel">Model Name</label>
+                  <label htmlFor="openrouterModel">Model ID</label>
                   <input
                     type="text"
                     id="openrouterModel"
                     value={config.openrouterModel}
                     onChange={(e) => setConfig(prev => ({ ...prev, openrouterModel: e.target.value }))}
-                    placeholder="anthropic/claude-3.5-sonnet"
+                    placeholder="e.g., anthropic/claude-3.5-sonnet, openai/gpt-4o-mini"
                     required
                   />
                   <div className="help-text">
-                    Enter any OpenRouter model name (e.g., anthropic/claude-3.5-sonnet, openai/gpt-4, meta-llama/llama-3.1-405b)
+                    Enter any OpenRouter model ID. Check OpenRouter's model list for available options.
                   </div>
                 </div>
               </>

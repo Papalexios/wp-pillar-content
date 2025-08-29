@@ -6,8 +6,10 @@ interface UseSitemapParserResult {
   isLoading: boolean;
   progress: string;
   error: string | null;
-  parseSitemap: (url: string, options?: { maxEntries?: number; filterPatterns?: string[] }) => Promise<void>;
+  discoverAndParseSitemap: (baseUrl: string, overridePath?: string) => Promise<void>;
 }
+
+const DEFAULT_SITEMAP_PATHS = ['/wp-sitemap.xml', '/post-sitemap.xml', '/sitemap_index.xml', '/sitemap.xml'];
 
 export const useSitemapParser = (): UseSitemapParserResult => {
   const [entries, setEntries] = useState<SitemapEntry[]>([]);
@@ -15,76 +17,122 @@ export const useSitemapParser = (): UseSitemapParserResult => {
   const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const parseSitemap = useCallback(async (
-    url: string, 
-    options?: { maxEntries?: number; filterPatterns?: string[] }
-  ) => {
+  const discoverSitemapUrls = async (baseUrl: string, override?: string): Promise<string> => {
+    const paths = override ? [override, ...DEFAULT_SITEMAP_PATHS] : DEFAULT_SITEMAP_PATHS;
+    
+    for (const path of paths) {
+      try {
+        const proxiedPath = `/wp-sitemap-proxy${path.startsWith('/') ? path : new URL(path).pathname}`;
+        const res = await fetch(proxiedPath, { method: 'HEAD' });
+        const contentType = res.headers.get('content-type') || '';
+        
+        if (res.ok && (contentType.includes('xml') || contentType.includes('text'))) {
+          return proxiedPath;
+        }
+      } catch (err) {
+        // Continue to next path
+        continue;
+      }
+    }
+    
+    throw new Error(`No sitemap found at ${baseUrl}. Tried paths: ${paths.join(', ')}`);
+  };
+
+  const loadSitemapXml = async (proxiedPath: string): Promise<Document> => {
+    const res = await fetch(proxiedPath);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch sitemap: ${res.statusText}`);
+    }
+    
+    const xmlText = await res.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+    
+    // Check for parsing errors
+    const parseError = xmlDoc.querySelector('parsererror');
+    if (parseError) {
+      throw new Error('Invalid XML format in sitemap');
+    }
+    
+    return xmlDoc;
+  };
+
+  const extractUrls = (doc: Document): Array<{ loc: string; lastmod?: string }> => {
+    const isIndex = doc.documentElement.localName === 'sitemapindex';
+    
+    if (isIndex) {
+      // Handle sitemap index - get all sitemap locations
+      return [...doc.querySelectorAll('sitemap > loc')]
+        .map(node => ({
+          loc: node.textContent?.trim() || '',
+          lastmod: node.parentElement?.querySelector('lastmod')?.textContent?.trim()
+        }))
+        .filter(entry => entry.loc);
+    } else {
+      // Handle URL set - get all URL locations
+      return [...doc.querySelectorAll('url')]
+        .map(urlEl => ({
+          loc: urlEl.querySelector('loc')?.textContent?.trim() || '',
+          lastmod: urlEl.querySelector('lastmod')?.textContent?.trim()
+        }))
+        .filter(entry => entry.loc);
+    }
+  };
+
+  const discoverAndParseSitemap = useCallback(async (baseUrl: string, overridePath?: string) => {
     setIsLoading(true);
     setError(null);
-    setProgress('Fetching sitemap...');
+    setProgress('Discovering sitemap...');
     
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch sitemap: ${response.statusText}`);
-      }
-
-      const xmlText = await response.text();
-      setProgress('Parsing XML...');
+      // Step 1: Discover sitemap URL
+      const sitemapPath = await discoverSitemapUrls(baseUrl, overridePath);
+      setProgress('Loading sitemap XML...');
       
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+      // Step 2: Load and parse XML
+      const xmlDoc = await loadSitemapXml(sitemapPath);
+      setProgress('Extracting URLs...');
       
-      // Check for parsing errors
-      const parseError = xmlDoc.querySelector('parsererror');
-      if (parseError) {
-        throw new Error('Invalid XML format');
-      }
-
-      // Extract entries
-      const urlElements = xmlDoc.querySelectorAll('url');
-      const parsedEntries: SitemapEntry[] = [];
+      // Step 3: Extract URLs
+      const urlEntries = extractUrls(xmlDoc);
       
-      setProgress(`Processing ${urlElements.length} entries...`);
-
-      for (let i = 0; i < urlElements.length; i++) {
-        const urlElement = urlElements[i];
-        const loc = urlElement.querySelector('loc')?.textContent;
-        const lastmod = urlElement.querySelector('lastmod')?.textContent;
-        const priority = urlElement.querySelector('priority')?.textContent;
-        const changefreq = urlElement.querySelector('changefreq')?.textContent;
-
-        if (!loc) continue;
-
-        // Apply filters if specified
-        if (options?.filterPatterns && options.filterPatterns.length > 0) {
-          const matchesFilter = options.filterPatterns.some(pattern => 
-            loc.includes(pattern)
-          );
-          if (!matchesFilter) continue;
+      // Step 4: Check if we have a sitemap index and need to fetch child sitemaps
+      const isIndex = xmlDoc.documentElement.localName === 'sitemapindex';
+      let allEntries: Array<{ loc: string; lastmod?: string }> = [];
+      
+      if (isIndex) {
+        setProgress('Processing sitemap index...');
+        
+        // Fetch each child sitemap
+        for (let i = 0; i < urlEntries.length; i++) {
+          const sitemapUrl = urlEntries[i].loc;
+          try {
+            // Convert absolute URL to proxy path
+            const url = new URL(sitemapUrl);
+            const childSitemapPath = `/wp-sitemap-proxy${url.pathname}`;
+            
+            setProgress(`Loading child sitemap ${i + 1}/${urlEntries.length}...`);
+            const childDoc = await loadSitemapXml(childSitemapPath);
+            const childEntries = extractUrls(childDoc);
+            allEntries = allEntries.concat(childEntries);
+          } catch (err) {
+            console.warn(`Failed to load child sitemap: ${sitemapUrl}`, err);
+          }
         }
-
-        parsedEntries.push({
-          url: loc,
-          lastModified: lastmod || '',
-          priority: priority ? parseFloat(priority) : 0.5,
-          changeFreq: changefreq || 'weekly'
-        });
-
-        // Respect max entries limit
-        if (options?.maxEntries && parsedEntries.length >= options.maxEntries) {
-          break;
-        }
-
-        // Update progress periodically
-        if (i % 100 === 0) {
-          const progressPercent = Math.round((i / urlElements.length) * 100);
-          setProgress(`Processing entries... ${progressPercent}%`);
-        }
+      } else {
+        allEntries = urlEntries;
       }
-
-      setEntries(parsedEntries);
-      setProgress(`Successfully parsed ${parsedEntries.length} entries`);
+      
+      // Step 5: Convert to SitemapEntry format
+      const sitemapEntries: SitemapEntry[] = allEntries.map(entry => ({
+        url: entry.loc,
+        lastModified: entry.lastmod || '',
+        priority: 0.5,
+        changeFreq: 'weekly'
+      }));
+      
+      setEntries(sitemapEntries);
+      setProgress(`Successfully loaded ${sitemapEntries.length} URLs from sitemap`);
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -100,6 +148,6 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     isLoading,
     progress,
     error,
-    parseSitemap
+    discoverAndParseSitemap
   };
 };
