@@ -317,7 +317,8 @@ Return only the HTML content for the post body (no meta tags or titles).`
       case 'openai': return config.openaiApiKey;
       case 'anthropic': return config.anthropicApiKey;
       default: return '';
-  };
+      };
+  }
 
   const callAIService = async (messages: any[], cfg: any): Promise<string> => {
     switch (cfg.provider) {
