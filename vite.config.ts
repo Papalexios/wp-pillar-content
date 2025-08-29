@@ -10,6 +10,15 @@ export default defineConfig(({ mode }) => {
     return {
       server: {
         proxy: {
+          '/wp-api-proxy': {
+            target: wpOrigin,
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/wp-api-proxy/, ''),
+            secure: true,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          },
           '/wp-sitemap-proxy': {
             target: wpOrigin,
             changeOrigin: true,
