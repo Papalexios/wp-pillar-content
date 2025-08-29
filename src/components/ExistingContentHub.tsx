@@ -97,8 +97,26 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   };
 
   const handleGenerateContent = async (postIds: number[]) => {
+    // Map post IDs back to URLs for the real API pipeline
+    const selectedUrls = postIds.map(id => {
+      const post = posts.find(p => p.id === id);
+      return post?.url || '';
+    }).filter(Boolean);
+
+    if (selectedUrls.length === 0) {
+      console.error('No valid URLs found for selected posts');
+      return;
+    }
+
     try {
-      await generateBulkContent(postIds, {
+      // Update posts to show generating status
+      setPosts(prev => prev.map(post => 
+        postIds.includes(post.id) 
+          ? { ...post, status: 'generating' as const }
+          : post
+      ));
+
+      await generateBulkContent(selectedUrls, {
         enableEEAT: config.enableAdvancedFeatures,
         autoInternalLinking: config.enableAdvancedFeatures,
         diverseSchema: config.enableAdvancedFeatures
@@ -114,6 +132,13 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       setSelectedPosts(new Set());
     } catch (error) {
       console.error('Error generating content:', error);
+      
+      // Update failed posts to error status
+      setPosts(prev => prev.map(post => 
+        postIds.includes(post.id) 
+          ? { ...post, status: 'error' as const }
+          : post
+      ));
     }
   };
 

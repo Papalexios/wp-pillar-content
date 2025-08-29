@@ -111,6 +111,8 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
   };
 
   const isFormValid = config.wpSiteUrl && 
+    config.wpUsername && 
+    config.wpAppPassword &&
     ((config.selectedProvider === 'gemini' && keyStatuses.gemini === 'valid') ||
      (config.selectedProvider === 'openai' && keyStatuses.openai === 'valid') ||
      (config.selectedProvider === 'anthropic' && keyStatuses.anthropic === 'valid') ||
