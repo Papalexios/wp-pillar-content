@@ -105,18 +105,14 @@ export const useContentGeneration = (config: any) => {
     }
   };
 
-  const generateBulkContent = async (postIds: number[], options: GenerationOptions = {}) => {
+  const generateBulkContent = async (urlsToProcess: string[], options: GenerationOptions = {}) => {
     setIsGeneratingContent(true);
     setBulkProgress(0);
 
     const authBase64 = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
-    const selectedUrls = postIds.map(id => {
-      // Find the post URL from the ID - we need to pass the actual URLs
-      return `https://example.com/post-${id}`; // This needs to be properly mapped
-    });
 
     try {
-      await generateAndUpdatePosts(selectedUrls, {
+      await generateAndUpdatePosts(urlsToProcess, {
         apiKey: getApiKeyForProvider(),
         model: config.openrouterModel || 'anthropic/claude-3.5-sonnet',
         authBase64,
@@ -481,7 +477,7 @@ Return only the HTML content for the post body (no meta tags or titles).`
     return `Update and optimize content for post ID: ${postId}`;
   };
 
-  const callOpenRouter = async (apiKey: string, model: string, messages: any[]): Promise<string> => {
+  const callOpenRouter = async (apiKey: string, model: string, messages: any[], retryCount = 0): Promise<string> => {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -498,6 +494,13 @@ Return only the HTML content for the post body (no meta tags or titles).`
     });
 
     if (!response.ok) {
+      if (response.status === 429 && retryCount < 3) {
+        // Exponential backoff: 2^retryCount seconds
+        const delay = Math.pow(2, retryCount) * 1000;
+        console.log(`Rate limited. Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return callOpenRouter(apiKey, model, messages, retryCount + 1);
+      }
       throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
     }
 
