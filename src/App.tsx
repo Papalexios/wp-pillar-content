@@ -3,8 +3,8 @@ import { ProgressBar } from './components/ProgressBar';
 import { LandingPage } from './components/LandingPage';
 
 // Lazy load step components for code splitting
-const ConfigStep = lazy(() => import('./components/ConfigStep'));
-const ContentStep = lazy(() => import('./components/ContentStep'));
+const ConfigStep = lazy(() => import('./components/ConfigStep').then(module => ({ default: module.ConfigStep })));
+const ContentStep = lazy(() => import('./components/ContentStep').then(module => ({ default: module.ContentStep })));
 
 interface AppConfig {
   wpSiteUrl: string;
