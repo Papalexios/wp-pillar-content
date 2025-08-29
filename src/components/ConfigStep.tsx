@@ -11,6 +11,8 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
     geminiApiKey: '',
     openaiApiKey: '',
     anthropicApiKey: '',
+    openrouterApiKey: '',
+    openrouterModel: '',
     selectedProvider: 'gemini',
     enableAdvancedFeatures: false,
     ...initialConfig
@@ -19,7 +21,8 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
   const [keyStatuses, setKeyStatuses] = useState<Record<string, 'validating' | 'valid' | 'invalid' | null>>({
     gemini: null,
     openai: null,
-    anthropic: null
+    anthropic: null,
+    openrouter: null
   });
 
   const validateApiKey = async (provider: string, apiKey: string) => {
@@ -45,6 +48,9 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
           break;
         case 'anthropic':
           isValid = apiKey.startsWith('sk-ant-') && apiKey.length > 20;
+          break;
+        case 'openrouter':
+          isValid = apiKey.startsWith('sk-or-') && apiKey.length > 20;
           break;
       }
 
@@ -75,6 +81,13 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
     return () => clearTimeout(timeout);
   }, [config.anthropicApiKey]);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (config.openrouterApiKey) validateApiKey('openrouter', config.openrouterApiKey);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [config.openrouterApiKey]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onComplete(config);
@@ -83,7 +96,8 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
   const isFormValid = config.wpSiteUrl && 
     ((config.selectedProvider === 'gemini' && keyStatuses.gemini === 'valid') ||
      (config.selectedProvider === 'openai' && keyStatuses.openai === 'valid') ||
-     (config.selectedProvider === 'anthropic' && keyStatuses.anthropic === 'valid'));
+     (config.selectedProvider === 'anthropic' && keyStatuses.anthropic === 'valid') ||
+     (config.selectedProvider === 'openrouter' && keyStatuses.openrouter === 'valid' && config.openrouterModel.trim()));
 
   const renderKeyStatusIcon = (provider: string) => {
     const status = keyStatuses[provider];
@@ -132,6 +146,7 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
                 <option value="gemini">Google Gemini (Recommended)</option>
                 <option value="openai">OpenAI GPT-4</option>
                 <option value="anthropic">Anthropic Claude</option>
+                <option value="openrouter">OpenRouter (Any Model)</option>
               </select>
             </div>
 
@@ -184,6 +199,39 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
                   {renderKeyStatusIcon('anthropic')}
                 </div>
               </div>
+            )}
+
+            {config.selectedProvider === 'openrouter' && (
+              <>
+                <div className="form-group">
+                  <div className="api-key-group">
+                    <label htmlFor="openrouterApiKey">OpenRouter API Key</label>
+                    <input
+                      type="password"
+                      id="openrouterApiKey"
+                      value={config.openrouterApiKey}
+                      onChange={(e) => setConfig(prev => ({ ...prev, openrouterApiKey: e.target.value }))}
+                      placeholder="sk-or-..."
+                      required
+                    />
+                    {renderKeyStatusIcon('openrouter')}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="openrouterModel">Model Name</label>
+                  <input
+                    type="text"
+                    id="openrouterModel"
+                    value={config.openrouterModel}
+                    onChange={(e) => setConfig(prev => ({ ...prev, openrouterModel: e.target.value }))}
+                    placeholder="anthropic/claude-3.5-sonnet"
+                    required
+                  />
+                  <div className="help-text">
+                    Enter any OpenRouter model name (e.g., anthropic/claude-3.5-sonnet, openai/gpt-4, meta-llama/llama-3.1-405b)
+                  </div>
+                </div>
+              </>
             )}
           </fieldset>
 
