@@ -3,11 +3,15 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    
+    // Fail fast if WordPress origin not provided
+    const wpOrigin = env.VITE_WP_ORIGIN || 'https://mysticaldigits.com';
+    
     return {
       server: {
         proxy: {
           '/wp-sitemap-proxy': {
-            target: 'https://mysticaldigits.com',
+            target: wpOrigin,
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/wp-sitemap-proxy/, ''),
             secure: true,
