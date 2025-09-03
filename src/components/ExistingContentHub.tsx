@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VirtualizedContentTable } from './VirtualizedContentTable';
+import { RankGuardianPane } from './RankGuardianPane';
 import { WordPressPost } from '../types';
 import { useSitemapParser } from '../hooks/useSitemapParser';
 import { useContentGeneration } from '../hooks/useContentGeneration';
@@ -15,6 +16,8 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [hasFetched, setHasFetched] = useState(false);
+  const [showRankGuardian, setShowRankGuardian] = useState(false);
+  const [currentContent, setCurrentContent] = useState('');
 
   const { entries, isLoading: isFetchingPosts, progress, error, discoverAndParseSitemap } = useSitemapParser();
   const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
@@ -161,8 +164,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
         enableEEAT: true,
         autoInternalLinking: true,
         diverseSchema: true,
-        contentType: 'pillar',
-        quantumQuality: true
+        contentType: 'pillar'
       });
 
       setPosts(prev => prev.map(post => 
@@ -182,6 +184,12 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       ));
     }
   };
+
+  const handleShowRankGuardian = (content: string) => {
+    setCurrentContent(content);
+    setShowRankGuardian(true);
+  };
+
   if (!hasFetched) {
     return (
       <div className="fetch-posts-prompt">
@@ -293,6 +301,13 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
         onGeneratePillar={handleGeneratePillar}
         searchTerm={searchTerm}
         statusFilter={statusFilter}
+      />
+      
+      <RankGuardianPane
+        content={currentContent}
+        targetKeyword={searchTerm}
+        isVisible={showRankGuardian}
+        onClose={() => setShowRankGuardian(false)}
       />
     </div>
   );
