@@ -9,6 +9,8 @@ interface GenerationOptions {
   diverseSchema?: boolean;
   eeatSignals?: boolean;
   competitorAnalysis?: boolean;
+  contentType?: 'optimize' | 'pillar';
+  quantumQuality?: boolean;
 }
 
 export const useContentGeneration = (config: any) => {
@@ -117,7 +119,9 @@ export const useContentGeneration = (config: any) => {
         model: config.openrouterModel || 'anthropic/claude-3.5-sonnet',
         authBase64,
         provider: config.selectedProvider,
-        serperApiKey: config.serperApiKey
+        serperApiKey: config.serperApiKey,
+        contentType: options.contentType || 'optimize',
+        quantumQuality: options.quantumQuality || false
       });
     } catch (error) {
       console.error('Error in bulk content generation:', error);
@@ -134,6 +138,8 @@ export const useContentGeneration = (config: any) => {
     authBase64: string;
     provider: string;
     serperApiKey: string;
+    contentType: string;
+    quantumQuality: boolean;
   }) => {
     const concurrency = 2;
     const batches = [];
@@ -166,6 +172,8 @@ export const useContentGeneration = (config: any) => {
     authBase64: string;
     provider: string;
     serperApiKey: string;
+    contentType: string;
+    quantumQuality: boolean;
   }) => {
     // Step 1: Extract slug from URL
     const slug = slugFromUrl(url);
@@ -179,11 +187,10 @@ export const useContentGeneration = (config: any) => {
     // Step 3: Fetch existing content for grounding
     const existingContent = await fetchExistingPost(postId);
     
-    // Step 4: Generate new content with premium E-E-A-T prompt
-    const generatedContent = await generatePremiumContent(url, existingContent, {
-      ...cfg,
-      serperApiKey: cfg.serperApiKey
-    });
+    // Step 4: Generate content based on type
+    const generatedContent = cfg.contentType === 'pillar' 
+      ? await generateQuantumPillarContent(url, existingContent, cfg)
+      : await generatePremiumContent(url, existingContent, cfg);
     
     // Step 5: Update WordPress post
     return await updateWpPost({
@@ -193,6 +200,150 @@ export const useContentGeneration = (config: any) => {
     });
   };
 
+  const generateQuantumPillarContent = async (url: string, existingContent: any, cfg: any): Promise<string> => {
+    // Step 1: Get competitor insights using Serper.dev
+    const competitorInsights = await getCompetitorInsights(existingContent.title, cfg.serperApiKey);
+    
+    const messages = [
+      {
+        role: 'system',
+        content: `🌟 QUANTUM CONTENT ARCHITECT 🌟
+
+You are the world's most elite content strategist with 30+ years of experience creating legendary, viral content. Your pillar articles have generated billions of views, dominated search results for years, and become the definitive resources that entire industries reference. You possess an unmatched ability to transform any topic into compelling, authoritative content that readers bookmark, share, and cite as the ultimate authority.
+
+Your content consistently:
+- Ranks #1 for competitive keywords within weeks
+- Achieves 95%+ engagement rates and ultra-low bounce rates  
+- Gets cited by industry experts and major publications
+- Becomes the go-to resource that competitors try to emulate
+- Generates massive social shares and backlinks naturally`
+      },
+      {
+        role: 'developer', 
+        content: `🚨 QUANTUM QUALITY PROTOCOL - MISSION CRITICAL 🚨
+
+ABSOLUTE NON-NEGOTIABLE MANDATES:
+
+⚡ PILLAR CONTENT SPECIFICATIONS ⚡
+- MINIMUM 3,000 WORDS (target 3,500-4,500 words)
+- Every single word must deliver MAXIMUM value
+- Zero fluff, zero filler - pure concentrated expertise
+- Must become THE definitive resource for this topic
+
+🎯 THE NUCLEAR HOOK PROTOCOL 🎯
+- Open with a statistic so mind-blowing it stops scrolling INSTANTLY
+- Statistic must be 100% fact-checked, recent, and industry-shocking
+- Follow with emotional storytelling that creates instant connection
+- Promise SPECIFIC, measurable outcomes readers WILL achieve
+- Introduction must be 500-600 words of pure engagement
+
+🔥 SEMANTIC KEYWORD DOMINATION 🔥
+- 100% INTEGRATION of ALL semantic keywords and LSI terms
+- Primary keyword density: 1.5-2% (calculated precisely)
+- Long-tail variations distributed strategically throughout
+- Topic clusters exploited for maximum semantic authority
+- Industry terminology woven naturally (never forced)
+- Synonym variations used to avoid keyword stuffing
+
+📚 PAA TRIPLE-INTEGRATION SYSTEM 📚
+MANDATORY People Also Ask questions (answer in 3 locations):
+1. Naturally woven throughout main content
+2. Dedicated comprehensive FAQ section
+3. Question-based subheadings where appropriate
+
+Core PAA Questions to Answer:
+- What is [topic] and why is it crucial in 2024?
+- How do complete beginners master [topic]?
+- What are the most dangerous mistakes with [topic]?
+- How long does it take to see real results from [topic]?
+- What tools/resources are absolutely essential for [topic]?
+- How much should [topic] cost and what's worth paying for?
+- Is [topic] suitable for [specific audiences]?
+- What alternatives exist to [topic]?
+- How do you measure success with [topic]?
+- What are the latest trends and changes in [topic]?
+- What do industry experts say about [topic]?
+- How has [topic] evolved and where is it heading?
+
+🎨 SUPREME READABILITY ENFORCEMENT 🎨
+- Grade 7-9 reading level (Hemingway App standards)
+- Paragraphs: 2-3 sentences MAXIMUM (no exceptions)
+- Subheadings every 200-250 words (creates perfect scannability)
+- Transition phrases connecting EVERY section seamlessly
+- 85%+ active voice (measured and optimized)
+- Sentence length variety for natural rhythm
+- Zero unexplained jargon or complex concepts
+
+🏗️ ARCHITECTURAL PERFECTION 🏗️
+1. Jaw-dropping hook + comprehensive introduction (500-600 words)
+2. Detailed table of contents (for long-form navigation)
+3. 12-18 main sections with laser-focused insights
+4. Real-world examples and detailed case studies
+5. Expert quotes from industry authorities
+6. Comprehensive FAQ section (all PAA questions)
+7. Balanced pros/cons analysis with nuanced perspective
+8. Step-by-step tutorials with actionable instructions
+9. "What This Means for You" practical applications
+10. Powerful conclusion with clear next steps
+
+💡 ENGAGEMENT MAXIMIZATION ARSENAL 💡
+- "🔥 Pro Tips" callout boxes with insider secrets
+- "⚠️ Warning" boxes highlighting critical mistakes
+- "💎 Expert Insight" quotes from industry leaders
+- "📊 Key Takeaway" summaries for each section
+- "✅ Action Item" at the end of every section
+- Power words and emotional triggers throughout
+- Numbered/bulleted lists for maximum scannability
+- Analogies and metaphors for complex concepts
+
+🏆 E-E-A-T AUTHORITY ESTABLISHMENT 🏆
+- First-person experience and hard-earned insights
+- Industry expert quotes and credible sources
+- Data-driven analysis with cited statistics
+- Balanced, nuanced perspectives (not one-sided)
+- Real case studies with measurable results
+- Personal anecdotes showing real-world application
+- Critical thinking and contrarian insights where appropriate
+
+💯 MISSION SUCCESS CRITERIA 💯
+After reading, the audience must think:
+"This is hands down the BEST, most comprehensive content on this topic I have EVER encountered. I'm bookmarking this immediately and sharing it with everyone I know."
+
+The content must:
+- Cover everything competitors discuss + 75% unique insights they miss
+- Answer every conceivable question about the topic
+- Provide actionable value that readers can implement immediately
+- Establish you as THE ultimate authority on this subject
+- Generate natural social shares and backlinks
+- Rank #1 for primary and semantic keywords`
+      },
+      {
+        role: 'user',
+        content: `🎯 QUANTUM PILLAR TRANSFORMATION MISSION 🎯
+
+URL: ${url}
+Current Title: ${existingContent.title}
+Existing Content Preview: """${existingContent.excerpt}"""
+${competitorInsights ? `\n🔍 COMPETITOR INTELLIGENCE:\n${competitorInsights}` : ''}
+
+🚀 TRANSFORMATION OBJECTIVES:
+
+1. 🎪 NUCLEAR HOOK: Craft an opening so compelling that readers CANNOT stop reading
+
+2. 🎯 SEMANTIC MASTERY: Integrate EVERY related keyword, LSI term, and semantic variation naturally
+
+3. 🤖 PAA DOMINATION: Research and perfectly answer ALL People Also Ask questions (triple integration: content + subheadings + FAQ)
+
+4. 🧠 CRITICAL THINKING: Inject your expert analysis, contrarian insights, and thought-provoking perspectives
+
+5. 💪 PERSONAL AUTHORITY: Include first-hand experience, lessons learned, and unique insights only an expert would know
+
+6. 📚 COMPREHENSIVE COVERAGE: Go 3x deeper than ANY competing content - cover angles others completely miss
+
+7. ⚡ ACTIONABLE VALUE: Every section must provide specific, implementable advice readers can use immediately
+
+QUALITY STANDARDS:
+✅ 3,000+ words minimum (aim for 3,500-4,500)
   const slugFromUrl = (url: string): string => {
     try {
       const pathname = new URL(url).pathname;
