@@ -448,7 +448,7 @@ MISSION CRITICAL: Return ONLY the complete HTML content that will DOMINATE searc
       },
       {
         role: 'developer',
-        content: \`CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
+        content: `CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
 
         CONTENT QUALITY & LENGTH:
         - Minimum 2000 words (aim for 2500-3500 words)
