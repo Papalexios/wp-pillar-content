@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
       server: {
         proxy: {
           '/wp-api-proxy': {
-            target: 'https://placeholder.com',
+            target: wpOrigin,
             changeOrigin: true,
             rewrite: (path) => {
               const url = new URL(path, 'http://localhost');
