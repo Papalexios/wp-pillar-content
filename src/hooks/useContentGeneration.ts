@@ -497,7 +497,7 @@ MISSION CRITICAL: Return ONLY the complete HTML content that will DOMINATE searc
       },
       {
         role: 'user',
-        content: \`CONTENT UPGRADE MISSION:
+        content: `CONTENT UPGRADE MISSION:
 
 URL: ${url}
 Original Title: ${existingContent.title}
@@ -570,10 +570,10 @@ Return only the complete HTML content for the post body (no meta tags, titles, o
       if (organic.length === 0) return '';
       
       const insights = organic.slice(0, 3).map((result: any, index: number) => 
-        \`Competitor ${index + 1}: "${result.title}" - ${result.snippet || 'No snippet available'}`
+        `Competitor ${index + 1}: "${result.title}" - ${result.snippet || 'No snippet available'}`
       ).join('\n\n');
       
-      return \`TOP RANKING COMPETITORS:\n${insights}\n\nGOAL: Create content that covers all these topics PLUS additional insights they're missing.`;
+      return `TOP RANKING COMPETITORS:\n${insights}\n\nGOAL: Create content that covers all these topics PLUS additional insights they're missing.`;
     } catch (error) {
       console.warn('Failed to get competitor insights:', error);
       return '';
