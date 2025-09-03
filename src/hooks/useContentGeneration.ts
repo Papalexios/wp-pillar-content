@@ -116,7 +116,8 @@ export const useContentGeneration = (config: any) => {
         apiKey: getApiKeyForProvider(),
         model: config.openrouterModel || 'anthropic/claude-3.5-sonnet',
         authBase64,
-        provider: config.selectedProvider
+        provider: config.selectedProvider,
+        serperApiKey: config.serperApiKey
       });
     } catch (error) {
       console.error('Error in bulk content generation:', error);
@@ -132,6 +133,7 @@ export const useContentGeneration = (config: any) => {
     model: string; 
     authBase64: string;
     provider: string;
+    serperApiKey: string;
   }) => {
     const concurrency = 2;
     const batches = [];
@@ -163,6 +165,7 @@ export const useContentGeneration = (config: any) => {
     model: string; 
     authBase64: string;
     provider: string;
+    serperApiKey: string;
   }) => {
     // Step 1: Extract slug from URL
     const slug = slugFromUrl(url);
@@ -177,7 +180,10 @@ export const useContentGeneration = (config: any) => {
     const existingContent = await fetchExistingPost(postId);
     
     // Step 4: Generate new content with premium E-E-A-T prompt
-    const generatedContent = await generatePremiumContent(url, existingContent, cfg);
+    const generatedContent = await generatePremiumContent(url, existingContent, {
+      ...cfg,
+      serperApiKey: cfg.serperApiKey
+    });
     
     // Step 5: Update WordPress post
     return await updateWpPost({
@@ -242,6 +248,9 @@ export const useContentGeneration = (config: any) => {
   };
 
   const generatePremiumContent = async (url: string, existingContent: any, cfg: any): Promise<string> => {
+    // Step 1: Get competitor insights using Serper.dev
+    const competitorInsights = await getCompetitorInsights(existingContent.title, cfg.serperApiKey);
+    
     const messages = [
       {
         role: 'system',
@@ -303,6 +312,7 @@ export const useContentGeneration = (config: any) => {
 URL: ${url}
 Original Title: ${existingContent.title}
 Current Content Preview: """${existingContent.excerpt}"""
+${competitorInsights ? `\nCOMPETITOR ANALYSIS:\n${competitorInsights}` : ''}
 
 MISSION: Transform this into the DEFINITIVE, most comprehensive resource on this topic that:
 
@@ -341,6 +351,43 @@ Return only the complete HTML content for the post body (no meta tags, titles, o
     ];
 
     return await callAIService(messages, cfg);
+  };
+
+  const getCompetitorInsights = async (title: string, serperApiKey: string): Promise<string> => {
+    try {
+      const response = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': serperApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: title,
+          num: 5,
+          gl: 'us',
+          hl: 'en'
+        })
+      });
+
+      if (!response.ok) {
+        console.warn('Serper API failed, continuing without competitor insights');
+        return '';
+      }
+
+      const data = await response.json();
+      const organic = data.organic || [];
+      
+      if (organic.length === 0) return '';
+      
+      const insights = organic.slice(0, 3).map((result: any, index: number) => 
+        `Competitor ${index + 1}: "${result.title}" - ${result.snippet || 'No snippet available'}`
+      ).join('\n\n');
+      
+      return `TOP RANKING COMPETITORS:\n${insights}\n\nGOAL: Create content that covers all these topics PLUS additional insights they're missing.`;
+    } catch (error) {
+      console.warn('Failed to get competitor insights:', error);
+      return '';
+    }
   };
 
   const updateWpPost = async ({
