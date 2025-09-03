@@ -585,29 +585,43 @@ Return only the complete HTML content for the post body (no meta tags, titles, o
   };
 
   const createPillarContentPrompt = (pillarPage: any, options: GenerationOptions): string => {
-    return `PILLAR PAGE CONTENT GENERATION - ULTRA HIGH QUALITY:
+    return `🚨 MISSION CRITICAL DIRECTIVE 🚨
+You are tasked with creating the DEFINITIVE pillar page that will DOMINATE search results and become the #1 resource in its field.
 
-Target: ${pillarPage.title}
+CRITICAL PRE-GENERATION CHECKLIST:
+□ Will this content shock readers with an opening statistic?
+□ Will this be 2,500+ words of pure value?
+□ Will every semantic keyword be strategically placed?
+□ Will readers finish thinking "This is the BEST content I've ever read on this topic"?
+□ Will this answer EVERY People Also Ask question perfectly?
 
-MISSION: Create the most comprehensive, authoritative pillar page that becomes the definitive resource for this topic.
+TARGET PILLAR PAGE: ${pillarPage.title}
 
-CRITICAL REQUIREMENTS:
+🔥 UNBREAKABLE LAWS OF CONTENT CREATION 🔥
 
-1. SHOCKING INTRODUCTION:
-   - Start with a jaw-dropping, fact-checked statistic
-   - Use storytelling to create emotional connection
-   - Promise specific outcomes readers will achieve
+LAW #1: THE NUCLEAR HOOK MANDATE
+- MUST start with a statistic so shocking it makes readers say "HOLY SHIT!"
+- MUST be 100% fact-checked and verifiable
+- MUST create instant emotional connection through storytelling
+- MUST promise specific, measurable outcomes readers will achieve
+- Introduction MUST be 400-500 words minimum
 
-2. COMPREHENSIVE LENGTH: 2500-4000 words minimum
+LAW #2: THE WORD COUNT COMMANDMENT
+- ABSOLUTE MINIMUM: 2,500 words (aim for 3,000-4,000)
+- Every word must deliver value - NO FLUFF ALLOWED
+- Must feel comprehensive, not padded
+- Quality AND quantity - both are NON-NEGOTIABLE
 
-3. SEMANTIC KEYWORD MASTERY:
-   - Research and include ALL semantic keywords for this topic
-   - Use LSI keywords naturally throughout
-   - Include topic clusters and related terms
-   - Maintain 1-2% keyword density for primary terms
+LAW #3: SEMANTIC KEYWORD SUPREMACY
+- 100% KEYWORD INTEGRATION - Every related term MUST appear
+- LSI keywords woven naturally (never forced or awkward)
+- Topic clusters and semantic relationships exploited fully
+- Primary keyword density: 1-2% (measure this!)
+- Long-tail variations strategically distributed
+- Industry jargon and terminology included appropriately
 
-4. PEOPLE ALSO ASK INTEGRATION:
-   Research and answer these PAA questions:
+LAW #4: PAA DUAL-LOCATION DOMINATION
+   MANDATORY People Also Ask questions to answer (BOTH in dedicated FAQ AND woven throughout):
    - What is [topic] and why is it important?
    - How do you get started with [topic]?
    - What are the benefits of [topic]?
@@ -618,32 +632,58 @@ CRITICAL REQUIREMENTS:
    - What are alternatives to [topic]?
    - Is [topic] right for beginners?
    - How do you measure success with [topic]?
+   - What are the latest trends in [topic]?
+   - How has [topic] changed over time?
+   
+   CRITICAL: Each question must be answered TWICE:
+   1. Naturally integrated within relevant sections
+   2. Explicitly in a comprehensive FAQ section
 
-5. STRUCTURE & E-E-A-T:
-   - Compelling introduction with shocking statistic (400+ words)
+LAW #5: SUPREME READABILITY ENFORCEMENT
+   - Grade 8-10 reading level (use Hemingway principles)
+   - Paragraphs: 2-3 sentences MAXIMUM
+   - Subheadings every 200-300 words (no exceptions)
+   - Transition phrases between ALL sections
+   - Active voice dominance (80%+ active voice)
+   - Varied sentence lengths for rhythm
+   - Zero jargon without explanation
+
+LAW #6: STRUCTURAL PERFECTION MANDATE
    - Table of contents
-   - 8-15 main sections with deep insights
+   - 10-15 main sections with laser-focused insights
    - Real examples and case studies
    - Expert quotes and credible sources
-   - Comprehensive FAQ section
+   - Comprehensive FAQ section (PAA questions)
    - Step-by-step tutorials
-   - Pros/cons analysis
+   - Balanced pros/cons analysis
    - Strong conclusion with next steps
+   - Internal linking opportunities clearly marked
 
-6. READABILITY:
-   - Grade 8-10 reading level
-   - Short paragraphs (2-3 sentences)
-   - Numbered and bulleted lists
-   - Clear subheadings every 200-300 words
-   - Transition phrases between sections
-
-7. ENGAGEMENT ELEMENTS:
+LAW #7: ENGAGEMENT MAXIMIZATION PROTOCOL
    - "Pro Tips" and "Expert Insights" callouts
    - Warning boxes for common mistakes
-   - Action items at end of each section
-   - Internal linking opportunities marked
+   - Action items concluding EVERY section
+   - Power words and emotional triggers throughout
+   - Numbered/bulleted lists for scannability
+   - Relevant analogies and metaphors
+   - "What This Means For You" sections
 
-Return complete HTML content that will dominate search results and provide massive value to readers.`;
+LAW #8: E-E-A-T AUTHORITY ESTABLISHMENT
+   - First-person experience and insights
+   - Expert quotes from industry leaders
+   - Credible sources and citations
+   - Balanced, nuanced analysis
+   - Real case studies and examples
+   - Personal anecdotes where appropriate
+
+🎯 MISSION SUCCESS CRITERIA:
+- Reader thinks: "This is the BEST content on this topic I've EVER read"
+- Covers everything competitors discuss + 50% more unique insights
+- Answers every possible question a reader might have
+- Provides actionable value in every section
+- Becomes the definitive bookmark-worthy resource
+
+FINAL DIRECTIVE: Return ONLY the complete HTML content that will CRUSH all competition and establish absolute topical authority. NO meta tags, titles, or WordPress markup - just pure, dominant content.`;
   };
 
   const createClusterArticlePrompt = (article: any, pillarPage: any, options: GenerationOptions): string => {
