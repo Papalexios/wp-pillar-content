@@ -99,18 +99,18 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     }
   };
 
-  const discoverAndParseSitemap = useCallback(async (baseUrl: string, overridePath?: string) => {
+  const discoverAndParseSitemap = useCallback(async (baseUrl: string, overridePath?: string, useProxy: boolean = false) => {
     setIsLoading(true);
     setError(null);
     setProgress('Discovering sitemap...');
     
     try {
       // Step 1: Discover sitemap URL
-      const sitemapUrl = await discoverSitemapUrls(baseUrl, overridePath);
+      const sitemapUrl = await discoverSitemapUrls(baseUrl, overridePath, useProxy);
       setProgress('Loading sitemap XML...');
       
       // Step 2: Load and parse XML
-      const xmlDoc = await loadSitemapXml(sitemapUrl);
+      const xmlDoc = await loadSitemapXml(sitemapUrl, useProxy);
       setProgress('Extracting URLs...');
       
       // Step 3: Extract URLs
@@ -128,7 +128,10 @@ export const useSitemapParser = (): UseSitemapParserResult => {
           const sitemapUrl = urlEntries[i].loc;
           try {
             setProgress(`Loading child sitemap ${i + 1}/${urlEntries.length}...`);
-            const childDoc = await loadSitemapXml(sitemapUrl);
+            const childUrl = useProxy 
+              ? `/wp-api-proxy${new URL(sitemapUrl).pathname}?baseUrl=${encodeURIComponent(baseUrl)}`
+              : sitemapUrl;
+            const childDoc = await loadSitemapXml(childUrl, useProxy);
             const childEntries = extractUrls(childDoc);
             allEntries = allEntries.concat(childEntries);
           } catch (err) {

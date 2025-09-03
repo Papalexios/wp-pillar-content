@@ -42,7 +42,9 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     if (!config.wpSiteUrl) return;
 
     try {
-      await discoverAndParseSitemap(config.wpSiteUrl);
+      // Use proxy for remote URLs to avoid CORS issues
+      const useProxy = !config.wpSiteUrl.startsWith('http://localhost') && !config.wpSiteUrl.startsWith('http://127.0.0.1');
+      await discoverAndParseSitemap(config.wpSiteUrl, undefined, useProxy);
       setHasFetched(true);
     } catch (err) {
       console.error('Error fetching posts:', err);

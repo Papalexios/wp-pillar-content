@@ -11,12 +11,23 @@ export default defineConfig(({ mode }) => {
       server: {
         proxy: {
           '/wp-api-proxy': {
-            target: wpOrigin,
+            target: 'https://placeholder.com',
             changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/wp-api-proxy/, ''),
-            secure: true,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            rewrite: (path) => {
+              const url = new URL(path, 'http://localhost');
+              const baseUrl = url.searchParams.get('baseUrl');
+              const sitemap_path = path.split('?')[0].replace('/wp-api-proxy', '');
+              return baseUrl ? `${baseUrl}${sitemap_path}` : sitemap_path;
+            },
+            configure: (proxy, _options) => {
+              proxy.on('proxyReq', (proxyReq, req, res) => {
+                const url = new URL(req.url || '', 'http://localhost');
+                const baseUrl = url.searchParams.get('baseUrl');
+                if (baseUrl) {
+                  const target = new URL(baseUrl);
+                  proxyReq.setHeader('host', target.host);
+                }
+              });
             }
           },
         }
