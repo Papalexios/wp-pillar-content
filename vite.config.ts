@@ -4,8 +4,8 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     
-    // Fail fast if WordPress origin not provided
-    const wpOrigin = env.VITE_WP_ORIGIN || 'https://mysticaldigits.com';
+    // WordPress origin for proxy - can be overridden by user config
+    const wpOrigin = env.VITE_WP_ORIGIN || 'https://example.com';
     
     return {
       server: {
@@ -19,15 +19,6 @@ export default defineConfig(({ mode }) => {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
           },
-          '/wp-sitemap-proxy': {
-            target: wpOrigin,
-            changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/wp-sitemap-proxy/, ''),
-            secure: true,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-          }
         }
       },
       define: {

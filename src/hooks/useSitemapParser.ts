@@ -22,12 +22,18 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     
     for (const path of paths) {
       try {
-        const proxiedPath = `/wp-sitemap-proxy${path.startsWith('/') ? path : new URL(path).pathname}`;
-        const res = await fetch(proxiedPath, { method: 'HEAD' });
+        const fullUrl = `${baseUrl.replace(/\/$/, '')}${path}`;
+        const res = await fetch(fullUrl, { 
+          method: 'HEAD',
+          mode: 'cors',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
         const contentType = res.headers.get('content-type') || '';
         
         if (res.ok && (contentType.includes('xml') || contentType.includes('text'))) {
-          return proxiedPath;
+          return fullUrl;
         }
       } catch (err) {
         // Continue to next path
@@ -38,8 +44,13 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     throw new Error(`No sitemap found at ${baseUrl}. Tried paths: ${paths.join(', ')}`);
   };
 
-  const loadSitemapXml = async (proxiedPath: string): Promise<Document> => {
-    const res = await fetch(proxiedPath);
+  const loadSitemapXml = async (sitemapUrl: string): Promise<Document> => {
+    const res = await fetch(sitemapUrl, {
+      mode: 'cors',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
     if (!res.ok) {
       throw new Error(`Failed to fetch sitemap: ${res.statusText}`);
     }
@@ -86,11 +97,11 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     
     try {
       // Step 1: Discover sitemap URL
-      const sitemapPath = await discoverSitemapUrls(baseUrl, overridePath);
+      const sitemapUrl = await discoverSitemapUrls(baseUrl, overridePath);
       setProgress('Loading sitemap XML...');
       
       // Step 2: Load and parse XML
-      const xmlDoc = await loadSitemapXml(sitemapPath);
+      const xmlDoc = await loadSitemapXml(sitemapUrl);
       setProgress('Extracting URLs...');
       
       // Step 3: Extract URLs
@@ -107,12 +118,8 @@ export const useSitemapParser = (): UseSitemapParserResult => {
         for (let i = 0; i < urlEntries.length; i++) {
           const sitemapUrl = urlEntries[i].loc;
           try {
-            // Convert absolute URL to proxy path
-            const url = new URL(sitemapUrl);
-            const childSitemapPath = `/wp-sitemap-proxy${url.pathname}`;
-            
             setProgress(`Loading child sitemap ${i + 1}/${urlEntries.length}...`);
-            const childDoc = await loadSitemapXml(childSitemapPath);
+            const childDoc = await loadSitemapXml(sitemapUrl);
             const childEntries = extractUrls(childDoc);
             allEntries = allEntries.concat(childEntries);
           } catch (err) {

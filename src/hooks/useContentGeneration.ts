@@ -203,9 +203,19 @@ export const useContentGeneration = (config: any) => {
   };
 
   const getPostIdBySlug = async (slug: string): Promise<number | null> => {
+    const baseUrl = config.wpSiteUrl?.replace(/\/$/, '') || '';
+    if (!baseUrl) {
+      throw new Error('WordPress site URL not configured');
+    }
+
     try {
       // Try posts first
-      let res = await fetch(`/wp-api-proxy/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}`);
+      let res = await fetch(`${baseUrl}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}`, {
+        mode: 'cors',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
       if (res.ok) {
         const posts = await res.json();
         if (Array.isArray(posts) && posts.length > 0 && posts[0].id) {
@@ -214,7 +224,12 @@ export const useContentGeneration = (config: any) => {
       }
       
       // Try pages if no post found
-      res = await fetch(`/wp-api-proxy/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`);
+      res = await fetch(`${baseUrl}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`, {
+        mode: 'cors',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
       if (res.ok) {
         const pages = await res.json();
         if (Array.isArray(pages) && pages.length > 0 && pages[0].id) {
@@ -230,8 +245,18 @@ export const useContentGeneration = (config: any) => {
   };
 
   const fetchExistingPost = async (postId: number) => {
+    const baseUrl = config.wpSiteUrl?.replace(/\/$/, '') || '';
+    if (!baseUrl) {
+      throw new Error('WordPress site URL not configured');
+    }
+
     try {
-      const res = await fetch(`/wp-api-proxy/wp-json/wp/v2/posts/${postId}`);
+      const res = await fetch(`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+        mode: 'cors',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
       if (!res.ok) {
         throw new Error(`Failed to fetch post ${postId}: ${res.status}`);
       }
@@ -403,6 +428,11 @@ Return only the complete HTML content for the post body (no meta tags, titles, o
     status?: 'publish' | 'draft';
     authBase64: string;
   }) => {
+    const baseUrl = config.wpSiteUrl?.replace(/\/$/, '') || '';
+    if (!baseUrl) {
+      throw new Error('WordPress site URL not configured');
+    }
+
     const updateData: any = { content: { raw: content } };
     if (title) {
       updateData.title = title;
@@ -411,11 +441,13 @@ Return only the complete HTML content for the post body (no meta tags, titles, o
       updateData.status = status;
     }
 
-    const res = await fetch(`/wp-api-proxy/wp-json/wp/v2/posts/${id}`, {
+    const res = await fetch(`${baseUrl}/wp-json/wp/v2/posts/${id}`, {
       method: 'POST',
+      mode: 'cors',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${authBase64}`
+        'Authorization': `Basic ${authBase64}`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
       body: JSON.stringify(updateData)
     });
