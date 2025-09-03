@@ -245,26 +245,98 @@ export const useContentGeneration = (config: any) => {
     const messages = [
       {
         role: 'system',
-        content: 'Act as a senior domain expert and editor producing reader-first articles that meet Google\'s Helpful Content guidelines and E-E-A-T, with clear structure, factual accuracy, and first-hand experience where appropriate.'
+        content: 'You are a world-class content strategist and domain expert with 20+ years of experience creating viral, engaging content. Your articles consistently rank #1 on Google, have 90%+ engagement rates, and are cited by industry leaders. You excel at transforming complex topics into compelling, easy-to-understand content that delivers massive value to readers.'
       },
       {
         role: 'developer',
-        content: 'Requirements: 1) Title + TL;DR, 2) Intro with first-person experience or perspective, 3) 5–9 Key Insights with examples, 4) How-to steps with caveats, 5) Pros/Cons, 6) Case study or scenario, 7) FAQs, 8) Sources and attributions, 9) Conclusion with a clear stance, 10) Reading ease ~8th–10th grade, short paragraphs, scannable headings.'
+        content: `CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
+
+        CONTENT QUALITY & LENGTH:
+        - Minimum 2000 words (aim for 2500-3500 words)
+        - 10x higher quality than any competing content
+        - Grade 8-10 readability (use Hemingway Editor principles)
+        - Short paragraphs (2-3 sentences max)
+        - Scannable with clear subheadings every 200-300 words
+
+        INTRODUCTION REQUIREMENTS:
+        - Start with a jaw-dropping, fact-checked statistic that shocks readers
+        - Use storytelling elements to create emotional connection
+        - Promise specific, actionable outcomes the reader will achieve
+        - Include a compelling hook that makes scrolling irresistible
+
+        SEMANTIC KEYWORD INTEGRATION:
+        - Naturally weave semantic keywords throughout (LSI keywords, synonyms, related terms)
+        - Use topic clusters and semantic relationships
+        - Include industry-specific terminology and jargon appropriately
+        - Maintain keyword density of 1-2% for primary keywords
+
+        PEOPLE ALSO ASK (PAA) INTEGRATION:
+        - Research and include 8-12 People Also Ask questions for the topic
+        - Answer each PAA question comprehensively within the content
+        - Format as dedicated FAQ section AND weave answers throughout
+        - Use question-based subheadings where natural
+
+        STRUCTURE & E-E-A-T:
+        1. Compelling headline with power words
+        2. Shocking statistic + engaging introduction (300+ words)
+        3. Table of contents for long-form content
+        4. 7-12 main sections with actionable insights
+        5. Real examples, case studies, and first-hand experience
+        6. Comprehensive FAQ section (People Also Ask)
+        7. Expert quotes and credible sources
+        8. Pros/cons analysis with balanced perspective
+        9. Step-by-step tutorials with screenshots/examples
+        10. Strong conclusion with clear next steps
+
+        ENGAGEMENT & READABILITY:
+        - Use power words and emotional triggers
+        - Include numbered/bulleted lists frequently
+        - Add "Pro Tips," "Warning," and "Expert Insight" callout boxes
+        - Use transition phrases between sections
+        - Include relevant analogies and metaphors
+        - End each section with a takeaway or action item`
       },
       {
         role: 'user',
-        content: `URL: ${url}
-Original Title: ${existingContent.title}
-Existing Content Excerpt: """${existingContent.excerpt}"""
+        content: `CONTENT UPGRADE MISSION:
 
-Task: Completely rewrite and upgrade this content to premium quality with:
-- First-hand experience and insights
-- Critical analysis and balanced perspective
-- Comprehensive coverage that outperforms competitors
-- Perfect structure for readability and SEO
+URL: ${url}
+Original Title: ${existingContent.title}
+Current Content Preview: """${existingContent.excerpt}"""
+
+MISSION: Transform this into the DEFINITIVE, most comprehensive resource on this topic that:
+
+1. SHOCKING OPENER: Start with a mind-blowing, fact-checked statistic that makes readers think "I had no idea!"
+
+2. SEMANTIC MASTERY: Strategically incorporate ALL related semantic keywords, synonyms, and LSI terms naturally throughout the content
+
+3. PAA DOMINATION: Research and answer these People Also Ask questions within the content:
+   - What is [main topic] and why does it matter?
+   - How do beginners get started with [topic]?
+   - What are the most common mistakes with [topic]?
+   - How long does it take to see results from [topic]?
+   - What tools/resources are needed for [topic]?
+   - How much does [topic] cost?
+   - Is [topic] worth it for [specific audience]?
+   - What are alternatives to [topic]?
+
+4. AUTHORITY BUILDING: Include expert quotes, studies, and credible sources
+
+5. EXPERIENCE SIGNALS: Add first-person insights, lessons learned, and real examples
+
+6. COMPREHENSIVE COVERAGE: Cover every angle competitors miss, go 3x deeper than existing content
+
+7. ACTIONABLE VALUE: Every section must include specific, implementable advice
+
+CONTENT REQUIREMENTS:
+- Minimum 2000 words, targeting 2500-3500 words
+- Grade 8-10 readability with short paragraphs
+- Scannable format with clear subheadings
+- FAQ section answering People Also Ask questions
+- Expert-level insights with balanced analysis
 - Strong E-E-A-T signals throughout
 
-Return only the HTML content for the post body (no meta tags or titles).`
+Return only the complete HTML content for the post body (no meta tags, titles, or WordPress-specific markup).`
       }
     ];
 
@@ -466,11 +538,121 @@ Return only the HTML content for the post body (no meta tags or titles).`
   };
 
   const createPillarContentPrompt = (pillarPage: any, options: GenerationOptions): string => {
-    return `Generate comprehensive pillar page content for: ${pillarPage.title}`;
+    return `PILLAR PAGE CONTENT GENERATION - ULTRA HIGH QUALITY:
+
+Target: ${pillarPage.title}
+
+MISSION: Create the most comprehensive, authoritative pillar page that becomes the definitive resource for this topic.
+
+CRITICAL REQUIREMENTS:
+
+1. SHOCKING INTRODUCTION:
+   - Start with a jaw-dropping, fact-checked statistic
+   - Use storytelling to create emotional connection
+   - Promise specific outcomes readers will achieve
+
+2. COMPREHENSIVE LENGTH: 2500-4000 words minimum
+
+3. SEMANTIC KEYWORD MASTERY:
+   - Research and include ALL semantic keywords for this topic
+   - Use LSI keywords naturally throughout
+   - Include topic clusters and related terms
+   - Maintain 1-2% keyword density for primary terms
+
+4. PEOPLE ALSO ASK INTEGRATION:
+   Research and answer these PAA questions:
+   - What is [topic] and why is it important?
+   - How do you get started with [topic]?
+   - What are the benefits of [topic]?
+   - What are common mistakes to avoid with [topic]?
+   - How long does [topic] take to master?
+   - What tools are needed for [topic]?
+   - How much does [topic] cost?
+   - What are alternatives to [topic]?
+   - Is [topic] right for beginners?
+   - How do you measure success with [topic]?
+
+5. STRUCTURE & E-E-A-T:
+   - Compelling introduction with shocking statistic (400+ words)
+   - Table of contents
+   - 8-15 main sections with deep insights
+   - Real examples and case studies
+   - Expert quotes and credible sources
+   - Comprehensive FAQ section
+   - Step-by-step tutorials
+   - Pros/cons analysis
+   - Strong conclusion with next steps
+
+6. READABILITY:
+   - Grade 8-10 reading level
+   - Short paragraphs (2-3 sentences)
+   - Numbered and bulleted lists
+   - Clear subheadings every 200-300 words
+   - Transition phrases between sections
+
+7. ENGAGEMENT ELEMENTS:
+   - "Pro Tips" and "Expert Insights" callouts
+   - Warning boxes for common mistakes
+   - Action items at end of each section
+   - Internal linking opportunities marked
+
+Return complete HTML content that will dominate search results and provide massive value to readers.`;
   };
 
   const createClusterArticlePrompt = (article: any, pillarPage: any, options: GenerationOptions): string => {
-    return `Generate cluster article: ${article.title} that supports pillar page: ${pillarPage.title}`;
+    return `CLUSTER ARTICLE GENERATION - PREMIUM QUALITY:
+
+Article: ${article.title}
+Supporting Pillar: ${pillarPage.title}
+Target Keywords: ${article.keywords ? article.keywords.join(', ') : 'Not specified'}
+
+MISSION: Create a comprehensive supporting article that perfectly complements the pillar page.
+
+CRITICAL REQUIREMENTS:
+
+1. ENGAGING OPENER:
+   - Start with a surprising, fact-checked statistic
+   - Connect to the pillar page topic naturally
+   - Promise specific value readers will gain
+
+2. OPTIMAL LENGTH: 1500-2500 words
+
+3. SEMANTIC KEYWORD STRATEGY:
+   - Focus on long-tail variations of pillar keywords
+   - Include semantic keywords and LSI terms
+   - Use related terminology strategically
+   - Reference pillar page topic naturally
+
+4. PEOPLE ALSO ASK COVERAGE:
+   Answer relevant PAA questions for this specific subtopic:
+   - How does [article topic] relate to [pillar topic]?
+   - What are the best practices for [article topic]?
+   - What mistakes should you avoid with [article topic]?
+   - How do you implement [article topic] effectively?
+   - When should you use [article topic]?
+   - What tools help with [article topic]?
+
+5. SUPPORTING STRUCTURE:
+   - Clear introduction linking to pillar concept
+   - 5-8 main sections with deep dives
+   - Practical examples and case studies
+   - Expert insights and quotes
+   - FAQ section for subtopic
+   - Clear internal linking opportunities to pillar page
+
+6. E-E-A-T SIGNALS:
+   - First-hand experience and insights
+   - Expert authority establishment
+   - Balanced analysis with pros/cons
+   - Credible sources and citations
+
+7. READABILITY:
+   - Grade 8-10 reading level
+   - Scannable format with subheadings
+   - Short paragraphs and clear transitions
+   - Actionable takeaways in each section
+
+Return complete HTML content optimized for search rankings and reader engagement.`;
   };
 
   const createPostUpdatePrompt = (postId: number, options: GenerationOptions): string => {
