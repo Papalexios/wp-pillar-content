@@ -6,7 +6,7 @@ interface UseSitemapParserResult {
   isLoading: boolean;
   progress: string;
   error: string | null;
-  discoverAndParseSitemap: (baseUrl: string, overridePath?: string) => Promise<void>;
+  discoverAndParseSitemap: (baseUrl: string, overridePath?: string, useProxy?: boolean) => Promise<void>;
 }
 
 const DEFAULT_SITEMAP_PATHS = ['/wp-sitemap.xml', '/post-sitemap.xml', '/sitemap_index.xml', '/sitemap.xml'];
@@ -17,23 +17,30 @@ export const useSitemapParser = (): UseSitemapParserResult => {
   const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const discoverSitemapUrls = async (baseUrl: string, override?: string): Promise<string> => {
+  const discoverSitemapUrls = async (baseUrl: string, override?: string, useProxy: boolean = false): Promise<string> => {
     const paths = override ? [override, ...DEFAULT_SITEMAP_PATHS] : DEFAULT_SITEMAP_PATHS;
     
     for (const path of paths) {
       try {
-        const fullUrl = `${baseUrl.replace(/\/$/, '')}${path}`;
+        const fullUrl = useProxy 
+          ? `/wp-api-proxy${path}?baseUrl=${encodeURIComponent(baseUrl)}`
+          : `${baseUrl.replace(/\/$/, '')}${path}`;
+          
         const res = await fetch(fullUrl, { 
           method: 'HEAD',
-          mode: 'cors',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
+          ...(useProxy ? {} : {
+            mode: 'cors',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          })
         });
         const contentType = res.headers.get('content-type') || '';
         
         if (res.ok && (contentType.includes('xml') || contentType.includes('text'))) {
-          return fullUrl;
+          return useProxy 
+            ? `/wp-api-proxy${path}?baseUrl=${encodeURIComponent(baseUrl)}`
+            : fullUrl;
         }
       } catch (err) {
         // Continue to next path
@@ -44,12 +51,14 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     throw new Error(`No sitemap found at ${baseUrl}. Tried paths: ${paths.join(', ')}`);
   };
 
-  const loadSitemapXml = async (sitemapUrl: string): Promise<Document> => {
+  const loadSitemapXml = async (sitemapUrl: string, useProxy: boolean = false): Promise<Document> => {
     const res = await fetch(sitemapUrl, {
-      mode: 'cors',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      ...(useProxy ? {} : {
+        mode: 'cors',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
     });
     if (!res.ok) {
       throw new Error(`Failed to fetch sitemap: ${res.statusText}`);
