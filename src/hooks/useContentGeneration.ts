@@ -344,6 +344,20 @@ ${competitorInsights ? `\n🔍 COMPETITOR INTELLIGENCE:\n${competitorInsights}` 
 
 QUALITY STANDARDS:
 ✅ 3,000+ words minimum (aim for 3,500-4,500)
+✅ Grade 7-9 readability with perfect scannability
+✅ Triple PAA integration (content + subheadings + FAQ)
+✅ 100% semantic keyword coverage
+✅ Expert-level E-E-A-T signals throughout
+✅ Jaw-dropping hook that creates instant engagement
+✅ Actionable takeaways in every single section
+
+MISSION CRITICAL: Return ONLY the complete HTML content that will DOMINATE search results and become the definitive industry resource. NO meta tags, titles, or WordPress markup - just pure, authoritative content that establishes absolute topical supremacy.`
+      }
+    ];
+
+    return await callAIService(messages, cfg);
+  };
+
   const slugFromUrl = (url: string): string => {
     try {
       const pathname = new URL(url).pathname;
@@ -375,7 +389,7 @@ QUALITY STANDARDS:
       }
       
       // Try pages if no post found
-      res = await fetch(`${baseUrl}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`, {
+      res = await fetch(\`${baseUrl}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`, {
         mode: 'cors',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -390,7 +404,7 @@ QUALITY STANDARDS:
       
       return null;
     } catch (error) {
-      console.error(`Error looking up post ID for slug ${slug}:`, error);
+      console.error(\`Error looking up post ID for slug ${slug}:`, error);
       return null;
     }
   };
@@ -402,14 +416,14 @@ QUALITY STANDARDS:
     }
 
     try {
-      const res = await fetch(`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+      const res = await fetch(\`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
         mode: 'cors',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
       if (!res.ok) {
-        throw new Error(`Failed to fetch post ${postId}: ${res.status}`);
+        throw new Error(\`Failed to fetch post ${postId}: ${res.status}`);
       }
       const post = await res.json();
       return {
@@ -418,7 +432,7 @@ QUALITY STANDARDS:
         excerpt: post.content?.rendered?.replace(/<[^>]+>/g, '').slice(0, 2000) || ''
       };
     } catch (error) {
-      console.error(`Error fetching existing post ${postId}:`, error);
+      console.error(\`Error fetching existing post ${postId}:`, error);
       return { title: '', content: '', excerpt: '' };
     }
   };
@@ -434,7 +448,7 @@ QUALITY STANDARDS:
       },
       {
         role: 'developer',
-        content: `CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
+        content: \`CRITICAL REQUIREMENTS - MUST FOLLOW ALL:
 
         CONTENT QUALITY & LENGTH:
         - Minimum 2000 words (aim for 2500-3500 words)
@@ -476,14 +490,14 @@ QUALITY STANDARDS:
         ENGAGEMENT & READABILITY:
         - Use power words and emotional triggers
         - Include numbered/bulleted lists frequently
-        - Add "Pro Tips," "Warning," and "Expert Insight" callout boxes
+        - Add "Pro Tips," "Warning,\" and "Expert Insight\" callout boxes
         - Use transition phrases between sections
         - Include relevant analogies and metaphors
         - End each section with a takeaway or action item`
       },
       {
         role: 'user',
-        content: `CONTENT UPGRADE MISSION:
+        content: \`CONTENT UPGRADE MISSION:
 
 URL: ${url}
 Original Title: ${existingContent.title}
@@ -556,10 +570,10 @@ Return only the complete HTML content for the post body (no meta tags, titles, o
       if (organic.length === 0) return '';
       
       const insights = organic.slice(0, 3).map((result: any, index: number) => 
-        `Competitor ${index + 1}: "${result.title}" - ${result.snippet || 'No snippet available'}`
+        \`Competitor ${index + 1}: "${result.title}" - ${result.snippet || 'No snippet available'}`
       ).join('\n\n');
       
-      return `TOP RANKING COMPETITORS:\n${insights}\n\nGOAL: Create content that covers all these topics PLUS additional insights they're missing.`;
+      return \`TOP RANKING COMPETITORS:\n${insights}\n\nGOAL: Create content that covers all these topics PLUS additional insights they're missing.`;
     } catch (error) {
       console.warn('Failed to get competitor insights:', error);
       return '';
