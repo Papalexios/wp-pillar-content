@@ -389,7 +389,7 @@ MISSION CRITICAL: Return ONLY the complete HTML content that will DOMINATE searc
       }
       
       // Try pages if no post found
-      res = await fetch(\`${baseUrl}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`, {
+      res = await fetch(`${baseUrl}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}`, {
         mode: 'cors',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -416,14 +416,14 @@ MISSION CRITICAL: Return ONLY the complete HTML content that will DOMINATE searc
     }
 
     try {
-      const res = await fetch(\`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+      const res = await fetch(`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
         mode: 'cors',
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
       if (!res.ok) {
-        throw new Error(\`Failed to fetch post ${postId}: ${res.status}`);
+        throw new Error(`Failed to fetch post ${postId}: ${res.status}`);
       }
       const post = await res.json();
       return {
