@@ -404,7 +404,7 @@ MISSION CRITICAL: Return ONLY the complete HTML content that will DOMINATE searc
       
       return null;
     } catch (error) {
-      console.error(\`Error looking up post ID for slug ${slug}:`, error);
+      console.error(`Error looking up post ID for slug ${slug}:`, error);
       return null;
     }
   };
