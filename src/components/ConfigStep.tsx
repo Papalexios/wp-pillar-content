@@ -8,6 +8,9 @@ interface ConfigStepProps {
 export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfig = {} }) => {
   const [config, setConfig] = useState({
     wpSiteUrl: '',
+    wpUsername: '',
+    wpAppPassword: '',
+    serperApiKey: '',
     geminiApiKey: '',
     openaiApiKey: '',
     anthropicApiKey: '',
@@ -19,6 +22,7 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
   });
 
   const [keyStatuses, setKeyStatuses] = useState<Record<string, 'validating' | 'valid' | 'invalid' | null>>({
+    serper: null,
     gemini: null,
     openai: null,
     anthropic: null,
@@ -36,7 +40,25 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
     try {
       let isValid = false;
       
-      if (provider === 'openrouter') {
+      if (provider === 'serper') {
+        // Test Serper API key with a simple search
+        try {
+          const response = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: {
+              'X-API-KEY': apiKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              q: 'test query',
+              num: 1
+            })
+          });
+          isValid = response.ok;
+        } catch {
+          isValid = false;
+        }
+      } else if (provider === 'openrouter') {
         // Test OpenRouter API key with a simple call
         try {
           const response = await fetch('https://openrouter.ai/api/v1/models', {
@@ -57,6 +79,9 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
         // Basic format validation
       }
       switch (provider) {
+        case 'serper':
+          // Already validated above with actual API call
+          break;
         case 'gemini':
           isValid = apiKey.startsWith('AIza') && apiKey.length > 20;
           break;
@@ -76,6 +101,13 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
       setKeyStatuses(prev => ({ ...prev, [provider]: 'invalid' }));
     }
   };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (config.serperApiKey) validateApiKey('serper', config.serperApiKey);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [config.serperApiKey]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -113,6 +145,8 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
   const isFormValid = config.wpSiteUrl && 
     config.wpUsername && 
     config.wpAppPassword &&
+    config.serperApiKey &&
+    keyStatuses.serper === 'valid' &&
     ((config.selectedProvider === 'gemini' && keyStatuses.gemini === 'valid') ||
      (config.selectedProvider === 'openai' && keyStatuses.openai === 'valid') ||
      (config.selectedProvider === 'anthropic' && keyStatuses.anthropic === 'valid') ||
@@ -179,6 +213,27 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
               />
               <div className="help-text">
                 Generate an Application Password in WordPress Admin → Users → Your Profile → Application Passwords.
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset className="config-fieldset">
+            <legend>SERP & Utility Keys (Required)</legend>
+            <div className="form-group">
+              <div className="api-key-group">
+                <label htmlFor="serperApiKey">Serper.dev API Key</label>
+                <input
+                  type="password"
+                  id="serperApiKey"
+                  value={config.serperApiKey}
+                  onChange={(e) => setConfig(prev => ({ ...prev, serperApiKey: e.target.value }))}
+                  placeholder="••••••••••••••••••••••••••••••••••••••••"
+                  required
+                />
+                {renderKeyStatusIcon('serper')}
+              </div>
+              <div className="help-text">
+                This is used for real-time Google Search analysis to understand competitors and ensure content is relevant and comprehensive.
               </div>
             </div>
           </fieldset>
