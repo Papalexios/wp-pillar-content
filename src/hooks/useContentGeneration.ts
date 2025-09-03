@@ -432,7 +432,7 @@ MISSION CRITICAL: Return ONLY the complete HTML content that will DOMINATE searc
         excerpt: post.content?.rendered?.replace(/<[^>]+>/g, '').slice(0, 2000) || ''
       };
     } catch (error) {
-      console.error(\`Error fetching existing post ${postId}:`, error);
+      console.error(`Error fetching existing post ${postId}:`, error);
       return { title: '', content: '', excerpt: '' };
     }
   };
