@@ -97,7 +97,6 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   };
 
   const handleGenerateContent = async (postIds: number[]) => {
-    // Map post IDs back to URLs for the real API pipeline
     const selectedUrls = postIds.map(id => {
       const post = posts.find(p => p.id === id);
       return post?.url || '';
@@ -109,7 +108,6 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     }
 
     try {
-      // Update posts to show generating status
       setPosts(prev => prev.map(post => 
         postIds.includes(post.id) 
           ? { ...post, status: 'generating' as const }
@@ -119,10 +117,10 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       await generateBulkContent(selectedUrls, {
         enableEEAT: config.enableAdvancedFeatures,
         autoInternalLinking: config.enableAdvancedFeatures,
-        diverseSchema: config.enableAdvancedFeatures
+        diverseSchema: config.enableAdvancedFeatures,
+        contentType: 'optimize'
       });
 
-      // Update post statuses
       setPosts(prev => prev.map(post => 
         postIds.includes(post.id) 
           ? { ...post, status: 'done' as const }
@@ -133,7 +131,6 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     } catch (error) {
       console.error('Error generating content:', error);
       
-      // Update failed posts to error status
       setPosts(prev => prev.map(post => 
         postIds.includes(post.id) 
           ? { ...post, status: 'error' as const }
@@ -142,6 +139,49 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     }
   };
 
+  const handleGeneratePillar = async (postIds: number[]) => {
+    const selectedUrls = postIds.map(id => {
+      const post = posts.find(p => p.id === id);
+      return post?.url || '';
+    }).filter(Boolean);
+
+    if (selectedUrls.length === 0) {
+      console.error('No valid URLs found for selected posts');
+      return;
+    }
+
+    try {
+      setPosts(prev => prev.map(post => 
+        postIds.includes(post.id) 
+          ? { ...post, status: 'generating' as const }
+          : post
+      ));
+
+      await generateBulkContent(selectedUrls, {
+        enableEEAT: true,
+        autoInternalLinking: true,
+        diverseSchema: true,
+        contentType: 'pillar',
+        quantumQuality: true
+      });
+
+      setPosts(prev => prev.map(post => 
+        postIds.includes(post.id) 
+          ? { ...post, status: 'done' as const }
+          : post
+      ));
+      
+      setSelectedPosts(new Set());
+    } catch (error) {
+      console.error('Error generating pillar content:', error);
+      
+      setPosts(prev => prev.map(post => 
+        postIds.includes(post.id) 
+          ? { ...post, status: 'error' as const }
+          : post
+      ));
+    }
+  };
   if (!hasFetched) {
     return (
       <div className="fetch-posts-prompt">
@@ -250,6 +290,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
         onPostSelect={handlePostSelect}
         onSelectAll={handleSelectAll}
         onGenerateContent={handleGenerateContent}
+        onGeneratePillar={handleGeneratePillar}
         searchTerm={searchTerm}
         statusFilter={statusFilter}
       />

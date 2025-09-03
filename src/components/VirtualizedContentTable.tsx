@@ -8,6 +8,7 @@ interface VirtualizedContentTableProps {
   onPostSelect: (postId: number) => void;
   onSelectAll: (checked: boolean) => void;
   onGenerateContent: (postIds: number[]) => void;
+  onGeneratePillar: (postIds: number[]) => void;
   searchTerm: string;
   statusFilter: string;
 }
@@ -18,6 +19,7 @@ export const VirtualizedContentTable: React.FC<VirtualizedContentTableProps> = (
   onPostSelect,
   onSelectAll,
   onGenerateContent,
+  onGeneratePillar,
   searchTerm,
   statusFilter
 }) => {
@@ -105,12 +107,25 @@ export const VirtualizedContentTable: React.FC<VirtualizedContentTableProps> = (
         
         <div className="toolbar-section">
           {selectedPosts.size > 0 && (
-            <button 
-              className="btn btn-small"
-              onClick={() => onGenerateContent(Array.from(selectedPosts))}
-            >
-              Generate Content ({selectedPosts.size})
-            </button>
+            <>
+              <button 
+                className="btn btn-small"
+                onClick={() => onGenerateContent(Array.from(selectedPosts))}
+              >
+                Optimize ({selectedPosts.size})
+              </button>
+              <button 
+                className="btn btn-small btn-pillar"
+                onClick={() => onGeneratePillar(Array.from(selectedPosts))}
+                style={{ 
+                  background: 'linear-gradient(45deg, #6d28d9, #9333ea)',
+                  boxShadow: '0 0 15px rgba(147, 51, 234, 0.4)',
+                  fontWeight: '700'
+                }}
+              >
+                🚀 Pillar ({selectedPosts.size})
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -241,13 +256,29 @@ export const VirtualizedContentTable: React.FC<VirtualizedContentTableProps> = (
                 <div>{post.wordCount.toLocaleString()}</div>
                 
                 <div className="table-actions">
-                  <button 
-                    className="btn btn-small btn-secondary"
-                    onClick={() => onGenerateContent([post.id])}
-                    disabled={post.status === 'generating'}
-                  >
-                    {post.status === 'generating' ? 'Generating...' : 'Update'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      className="btn btn-small btn-secondary"
+                      onClick={() => onGenerateContent([post.id])}
+                      disabled={post.status === 'generating'}
+                    >
+                      {post.status === 'generating' ? 'Optimizing...' : 'Optimize'}
+                    </button>
+                    <button 
+                      className="btn btn-small btn-pillar"
+                      onClick={() => onGeneratePillar([post.id])}
+                      disabled={post.status === 'generating'}
+                      style={{ 
+                        background: 'linear-gradient(45deg, #6d28d9, #9333ea)',
+                        color: 'white',
+                        border: 'none',
+                        fontSize: '0.8rem',
+                        padding: '0.4rem 0.8rem'
+                      }}
+                    >
+                      {post.status === 'generating' ? '🚀' : '🚀 Pillar'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
