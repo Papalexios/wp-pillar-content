@@ -1131,7 +1131,8 @@
         
         .card-stats {
             display: flex;
-            gap: 1rem;
+            flex-wrap: wrap;
+            gap: 1.5rem;
             margin-bottom: 1rem;
             font-size: 0.9rem;
             color: var(--text-light-color);
@@ -1143,8 +1144,20 @@
             border-radius: 8px;
             padding: 1rem;
             margin-bottom: 1.5rem;
-            max-height: 120px;
+            max-height: 150px;
             overflow: hidden;
+            position: relative;
+        }
+        
+        .card-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(transparent, var(--surface-glass));
+            pointer-events: none;
         }
         
         .preview-text {
@@ -1223,7 +1236,8 @@
         
         .editor-stats {
             display: flex;
-            gap: 1.5rem;
+            flex-wrap: wrap;
+            gap: 2rem;
             font-size: 0.9rem;
             color: var(--text-light-color);
         }
@@ -1282,6 +1296,17 @@
             margin-bottom: 0.75rem;
         }
         
+        .preview-content h2 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .preview-content h3 {
+            font-size: 1.25rem;
+            color: var(--primary-color);
+        }
+        
         .preview-content p {
             margin-bottom: 1rem;
         }
@@ -1293,6 +1318,33 @@
         
         .preview-content li {
             margin-bottom: 0.5rem;
+        }
+        
+        .preview-content a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            transition: all 0.2s;
+        }
+        
+        .preview-content a:hover {
+            color: var(--primary-hover-color);
+            border-bottom-color: var(--primary-hover-color);
+        }
+        
+        .preview-content strong {
+            color: var(--text-heading-color);
+            font-weight: 700;
+        }
+        
+        .preview-content blockquote {
+            border-left: 4px solid var(--primary-color);
+            margin: 1.5rem 0;
+            padding: 1rem 1.5rem;
+            background: var(--surface-glass);
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
         }
         
         @media (min-width: 768px) {
