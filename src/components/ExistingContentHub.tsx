@@ -501,11 +501,11 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
 
   const updateWordPressPost = async (postId: number, content: string, authBase64: string) => {
     const baseUrl = config.wpSiteUrl?.replace(/\/$/, '');
-    const response = await fetch(\`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+    const response = await fetch(`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': \`Basic ${authBase64}`
+        'Authorization': `Basic ${authBase64}`
       },
       body: JSON.stringify({
         content: { raw: content }
@@ -513,7 +513,7 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
     });
 
     if (!response.ok) {
-      throw new Error(\`Failed to update WordPress post: ${response.status}`);
+      throw new Error(`Failed to update WordPress post: ${response.status}`);
     }
   };
   // Filter posts based on search and status
