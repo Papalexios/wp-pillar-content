@@ -1,0 +1,24 @@
+{
+  "name": "WP Content Optimizer Pro",
+  "short_name": "WP Optimizer",
+  "description": "Enterprise-grade WordPress content optimization with AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0a15",
+  "theme_color": "#8b5cf6",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "screenshots": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "1280x720",
+      "type": "image/x-icon"
+    }
+  ]
+}

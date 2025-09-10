@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { fetchWithProxies, processConcurrently, retryWithBackoff } from "../utils/networkUtils";
+import { useWebWorkerPool } from "./useWebWorkerPool";
 import { SitemapEntry } from "../types";
 
 interface UseSitemapParserResult {
@@ -22,6 +23,15 @@ interface PageAnalysis {
 }
 
 export const useSitemapParser = (): UseSitemapParserResult => {
+  // Web Worker Pool for parallel content analysis
+  const workerPool = useWebWorkerPool({
+    maxWorkers: 8,
+    taskTimeout: 30000,
+    workerScript: `
+      importScripts('/src/workers/contentAnalyzer.worker.ts');
+    `
+  });
+  
   const [entries, setEntries] = useState<SitemapEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState('');
@@ -151,7 +161,7 @@ export const useSitemapParser = (): UseSitemapParserResult => {
   };
 
   // PHASE 2: HYPER-CONCURRENT PAGE ANALYSIS (100x IMPROVEMENT)
-  const analyzePages = async (urlMap: Map<string, { lastMod: string }>) => {
+  const analyzePages = async (urlMap: Map<string, { lastMod: string }>, workerPool) => {
     const urlEntries = Array.from(urlMap.entries());
     setTotalCount(urlEntries.length);
     setCrawledCount(0);
@@ -161,28 +171,38 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     const results: SitemapEntry[] = [];
     const processedUrls = new Set<string>();
     
+    // QUANTUM BATCH PROCESSING: Analyze in batches with Web Workers
+    const BATCH_SIZE = 10;
+    const batches = [];
+    
+    for (let i = 0; i < urlEntries.length; i += BATCH_SIZE) {
+      batches.push(urlEntries.slice(i, i + BATCH_SIZE));
+    }
+    
     // ULTRA-HIGH CONCURRENCY: 50 PARALLEL WORKERS
     await processConcurrently(
-      urlEntries, 
-      async (urlEntry, index) => {
-        const [url, { lastMod }] = urlEntry;
-        
-        if (processedUrls.has(url)) {
-          setCrawledCount(prev => prev + 1);
-          return;
-        }
-        
-        processedUrls.add(url);
-        
+      batches, 
+      async (batch, batchIndex) => {
         try {
-          const analysis = await retryWithBackoff(
-            () => analyzeIndividualPage(url, lastMod),
-            2, // Reduced retries for speed
-            500 // Faster retry intervals
+          // Prepare batch data for worker
+          const batchData = await Promise.all(
+            batch.map(async ([url, { lastMod }]) => {
+              if (processedUrls.has(url)) return null;
+              processedUrls.add(url);
+              
+              const html = await fetchWithProxies(url);
+              return { url, html, lastMod };
+            })
           );
           
+          const validBatchData = batchData.filter(Boolean);
+          if (validBatchData.length === 0) return;
+          
+          // Send batch to Web Worker for analysis
+          const batchResults = await workerPool.addTask('ANALYZE_BATCH', validBatchData, 0.8);
+        
           const entry: SitemapEntry = {
-            url: analysis.url,
+            url: batchResults.url,
             lastModified: analysis.lastModified,
             priority: calculatePriority(analysis),
             changeFreq: determineChangeFrequency(analysis),
@@ -375,7 +395,7 @@ export const useSitemapParser = (): UseSitemapParserResult => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Phase 2: Hyper-concurrent analysis
-      await analyzePages(discoveredUrls);
+      const results = await analyzePages(discoveredUrls, workerPool);
       
       setProgress(`🚀 QUANTUM CRAWL COMPLETE: ${discoveredUrls.size} pages analyzed with military precision`);
       
