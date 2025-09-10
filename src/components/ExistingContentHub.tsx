@@ -501,11 +501,11 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
 
   const updateWordPressPost = async (postId: number, content: string, authBase64: string) => {
     const baseUrl = config.wpSiteUrl?.replace(/\/$/, '');
-    const response = await fetch(`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+    const response = await fetch(\`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${authBase64}`
+        'Authorization': \`Basic ${authBase64}`
       },
       body: JSON.stringify({
         content: { raw: content }
@@ -513,7 +513,7 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to update WordPress post: ${response.status}`);
+      throw new Error(\`Failed to update WordPress post: ${response.status}`);
     }
   };
   // Filter posts based on search and status
@@ -616,15 +616,31 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
             className="premium-editor"
             value={editingContent}
             onChange={(e) => setEditingContent(e.target.value)}
+            <span>🔗 {(editingContent.match(/<a /g) || []).length} internal links</span>
             placeholder="Edit your premium pillar content here..."
           />
           
           <div className="editor-preview">
             <h3>📖 Live Preview</h3>
             <div 
+            <button 
+              className="btn btn-secondary" 
+              onClick={() => navigator.clipboard.writeText(editingContent)}
+            >
+              📋 Copy HTML
+            </button>
               className="preview-content"
               dangerouslySetInnerHTML={{ __html: editingContent }}
             />
+            <button 
+              className="btn btn-success" 
+              onClick={() => {
+                handleSaveEdit();
+                handlePublishToWordPress(selectedContent);
+              }}
+            >
+              📤 Save & Publish to WordPress
+            </button>
           </div>
         </div>
       </div>
@@ -650,7 +666,8 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
             <div key={content.id} className="content-card">
               <div className="card-header">
                 <h3>{content.title}</h3>
-                <div className={`status-badge ${content.status}`}>
+          style={{ minHeight: '400px', fontFamily: 'monospace', fontSize: '14px' }}
+                <div className={\`status-badge ${content.status}`}>
                   {content.status === 'draft' ? '📝 Draft' : '✅ Published'}
                 </div>
               </div>
@@ -733,10 +750,10 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
       {(isGeneratingContent || progress) && (
         <div className="premium-progress-card">
           <div className="premium-progress-bar">
-            <div className="premium-progress-fill" style={{ width: `${bulkProgress || 50}%` }}></div>
+            <div className="premium-progress-fill" style={{ width: \`${bulkProgress || 50}%` }}></div>
           </div>
           <p className="premium-progress-text">
-            {progress || `Generating Premium Content... ${bulkProgress}%`}
+            {progress || \`Generating Premium Content... ${bulkProgress}%`}
           </p>
         </div>
       )}
@@ -746,8 +763,21 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
           <input
             type="text"
             placeholder="🔍 Search posts..."
+          <div className="preview-stats">
+            <span>Words: {editingContent.replace(/<[^>]+>/g, '').split(' ').length}</span>
+            <span>Internal Links: {(editingContent.match(/<a /g) || []).length}</span>
+            <span>Headings: {(editingContent.match(/<h[2-6]/g) || []).length}</span>
+          </div>
             className="search-input"
             value={searchTerm}
+            style={{ 
+              border: '1px solid #ddd', 
+              padding: '20px', 
+              borderRadius: '8px',
+              backgroundColor: '#fff',
+              maxHeight: '500px',
+              overflow: 'auto'
+            }}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <select
@@ -766,12 +796,12 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
       
       <div className="premium-posts-grid">
         {filteredPosts.map((post) => (
-          <div key={post.id} className={`premium-post-card ${post.status}`}>
+          <div key={post.id} className={\`premium-post-card ${post.status}`}>
             <div className="card-status-indicator"></div>
             
             <div className="post-header">
               <h3 className="post-title">{post.title}</h3>
-              <div className={`post-status status-${post.status}`}>
+              <div className={\`post-status status-${post.status}`}>
                 {post.status === 'idle' && '📝 Ready'}
                 {post.status === 'generating' && '⚡ Generating...'}
                 {post.status === 'done' && '✅ Complete'}
@@ -827,3 +857,5 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
     </div>
   );
 };
+  }
+}
