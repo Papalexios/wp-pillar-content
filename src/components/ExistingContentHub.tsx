@@ -171,7 +171,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
       
       return !excludePatterns.some(pattern => path.includes(pattern)) && 
              path.length > 1 && 
-             !path.endsWith('/');
+             !path.endsWith('.xml');
     } catch {
       return false;
     }
