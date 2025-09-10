@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { WordPressPost } from '../types';
+import { useContentGeneration } from '../hooks/useContentGeneration';
 
 interface ExistingContentHubProps {
   config: any;
@@ -11,6 +12,9 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState('');
+  const [generatingUrls, setGeneratingUrls] = useState<Set<string>>(new Set());
+  
+  const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
 
   const fetchWordPressPosts = useCallback(async () => {
     if (!config.wpSiteUrl) return;
@@ -201,14 +205,49 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
   };
 
   const handleCreatePillar = async (url: string) => {
+    setGeneratingUrls(prev => new Set([...prev, url]));
+    
     try {
-      // Extract title from URL for the pillar post
-      const title = url.split('/').pop()?.replace(/-/g, ' ') || 'Content Marketing';
+      setProgress(`🚀 Generating QUANTUM PILLAR content for: ${url}`);
       
-      // Navigate to pillar creation with pre-filled data
-      onComplete();
+      // Generate pillar content using the advanced AI system
+      await generateBulkContent([url], {
+        contentType: 'pillar',
+        quantumQuality: true,
+        enableEEAT: config.enableAdvancedFeatures,
+        autoInternalLinking: config.enableAdvancedFeatures,
+        diverseSchema: config.enableAdvancedFeatures
+      });
+      
+      setProgress(`✅ PILLAR CONTENT COMPLETE: ${url}`);
+      
+      // Update the post status in the UI
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.url === url 
+            ? { ...post, status: 'done' as const }
+            : post
+        )
+      );
+      
     } catch (error) {
       console.error('Error creating pillar:', error);
+      setProgress(`❌ PILLAR GENERATION FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Update post status to error
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.url === url 
+            ? { ...post, status: 'error' as const }
+            : post
+        )
+      );
+    } finally {
+      setGeneratingUrls(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(url);
+        return newSet;
+      });
     }
   };
 
@@ -263,6 +302,15 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
       <h2>Update Existing Content</h2>
       <p>Found {posts.length} pages. Select URLs to create pillar posts or refresh content.</p>
       
+      {(isGeneratingContent || progress) && (
+        <div className="bulk-progress-bar">
+          <div className="bulk-progress-bar-fill" style={{ width: `${bulkProgress || 50}%` }}></div>
+          <div className="bulk-progress-bar-text">
+            {progress || `Generating Content... ${bulkProgress}%`}
+          </div>
+        </div>
+      )}
+      
       <div className="content-table-simple">
         {posts.slice(0, 10).map((post) => (
           <div key={post.id} className="content-row">
@@ -273,10 +321,22 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
             </div>
             <div className="content-actions">
               <button 
-                className="btn btn-small"
+                className="btn btn-small btn-pillar"
                 onClick={() => handleCreatePillar(post.url)}
+                disabled={generatingUrls.has(post.url) || isGeneratingContent}
               >
-                Create Pillar Post
+                {generatingUrls.has(post.url) ? (
+                  <>
+                    <div className="spinner" style={{ width: '16px', height: '16px' }}></div>
+                    Generating...
+                  </>
+                ) : post.status === 'done' ? (
+                  '✅ Pillar Created'
+                ) : post.status === 'error' ? (
+                  '❌ Failed'
+                ) : (
+                  '🚀 Create Pillar Post'
+                )}
               </button>
             </div>
           </div>
