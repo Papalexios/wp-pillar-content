@@ -8,6 +8,8 @@ export interface WordPressPost {
   url: string;
   isStale?: boolean;
   content?: string;
+  mainContent?: string;
+  analysisComplete?: boolean;
 }
 
 export interface ContentCluster {

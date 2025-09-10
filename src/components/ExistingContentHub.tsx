@@ -19,7 +19,15 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   const [showRankGuardian, setShowRankGuardian] = useState(false);
   const [currentContent, setCurrentContent] = useState('');
 
-  const { entries, isLoading: isFetchingPosts, progress, error, discoverAndParseSitemap } = useSitemapParser();
+  const { 
+    entries, 
+    isLoading: isFetchingPosts, 
+    progress, 
+    error, 
+    crawledCount, 
+    totalCount, 
+    discoverAndParseSitemap 
+  } = useSitemapParser();
   const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
 
   const extractTitleFromUrl = (url: string): string => {
@@ -42,9 +50,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     if (!config.wpSiteUrl) return;
 
     try {
-      // Use proxy for remote URLs to avoid CORS issues
-      const useProxy = !config.wpSiteUrl.startsWith('http://localhost') && !config.wpSiteUrl.startsWith('http://127.0.0.1');
-      await discoverAndParseSitemap(config.wpSiteUrl, undefined, useProxy);
+      await discoverAndParseSitemap(config.wpSiteUrl);
       setHasFetched(true);
     } catch (err) {
       console.error('Error fetching posts:', err);
@@ -202,10 +208,31 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
         
         {isFetchingPosts && (
           <div style={{ marginBottom: '2rem' }}>
+           {/* Real-time progress display */}
             <div className="bulk-progress-bar">
-              <div className="bulk-progress-bar-fill" style={{ width: '100%' }}></div>
-              <div className="bulk-progress-bar-text">{progress}</div>
+              <div 
+                className="bulk-progress-bar-fill" 
+                style={{ 
+                  width: totalCount > 0 ? `${(crawledCount / totalCount) * 100}%` : '100%',
+                  background: totalCount > 0 ? 
+                    'linear-gradient(90deg, #8b5cf6, #3b82f6)' : 
+                    'linear-gradient(90deg, #facc15, #f59e0b)'
+                }}
+              ></div>
+              <div className="bulk-progress-bar-text">
+                {totalCount > 0 ? `${crawledCount}/${totalCount} pages analyzed` : progress}
+              </div>
             </div>
+           
+           {/* Detailed progress info */}
+           <div style={{ 
+             textAlign: 'center', 
+             fontSize: '0.9rem', 
+             color: 'var(--text-light-color)', 
+             marginTop: '0.5rem' 
+           }}>
+             {progress}
+           </div>
           </div>
         )}
         
@@ -214,8 +241,8 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
             <strong>Sitemap Discovery Failed:</strong> {error}
             <br />
             <small>
-              Make sure your WordPress site has a sitemap at one of these locations: 
-              /wp-sitemap.xml, /post-sitemap.xml, /sitemap_index.xml, or /sitemap.xml
+             Our advanced crawler tried multiple proxy servers and sitemap locations. 
+             Please verify your site URL is accessible and has XML sitemaps enabled.
             </small>
           </div>
         )}
@@ -229,10 +256,10 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
           {isFetchingPosts ? (
             <>
               <div className="spinner" style={{ width: '20px', height: '20px' }}></div>
-              Discovering & Fetching Posts...
+             {totalCount > 0 ? `Analyzing Pages (${crawledCount}/${totalCount})` : 'Professional Crawling...'}
             </>
           ) : (
-            'Fetch WordPress Posts'
+           '🚀 Start Advanced Sitemap Crawl'
           )}
         </button>
         
@@ -250,12 +277,12 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       <div style={{ marginBottom: '2rem' }}>
         <h2>Update Existing Content</h2>
         <p>
-          Found {posts.length} posts from your WordPress sitemap. Select posts to optimize with AI-generated improvements.
+         Advanced crawl discovered {posts.length} pages with full content analysis. Select posts to optimize with AI-generated improvements.
         </p>
         
         {entries.length > 0 && (
           <div className="result success" style={{ marginBottom: '2rem' }}>
-            ✅ Successfully loaded {entries.length} URLs from sitemap
+           🎉 Professional crawl complete: {entries.length} pages analyzed with content extraction, stale detection, and SEO insights
           </div>
         )}
       </div>
