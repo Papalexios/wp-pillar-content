@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { SitemapEntry } from '../types';
+import { fetchWithProxies } from '../utils/networkUtils';
 
 interface UseSitemapParserResult {
   entries: SitemapEntry[];
@@ -10,25 +11,6 @@ interface UseSitemapParserResult {
   totalCount: number;
   discoverAndParseSitemap: (baseUrl: string, overridePath?: string) => Promise<void>;
 }
-
-// Professional CORS proxy rotation for maximum reliability
-const CORS_PROXIES = [
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-  'https://cors-anywhere.herokuapp.com/',
-  'https://thingproxy.freeboard.io/fetch/',
-  'https://crossorigin.me/',
-  'https://cors.bridged.cc/',
-];
-
-const DEFAULT_SITEMAP_PATHS = [
-  '/wp-sitemap.xml', 
-  '/post-sitemap.xml', 
-  '/sitemap_index.xml', 
-  '/sitemap.xml',
-  '/sitemap1.xml',
-  '/page-sitemap.xml'
-];
 
 interface PageAnalysis {
   url: string;
@@ -47,46 +29,7 @@ export const useSitemapParser = (): UseSitemapParserResult => {
   const [crawledCount, setCrawledCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Advanced resilient fetching with proxy rotation
-  const fetchWithProxies = async (url: string, retryCount = 0): Promise<string> => {
-    for (let i = 0; i < CORS_PROXIES.length; i++) {
-      const proxyUrl = `${CORS_PROXIES[i]}${encodeURIComponent(url)}`;
-      
-      try {
-        const response = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Cache-Control': 'no-cache'
-          },
-          signal: AbortSignal.timeout(15000) // 15 second timeout
-        });
-
-        if (response.ok) {
-          const text = await response.text();
-          if (text && text.length > 50) { // Ensure we got meaningful content
-            return text;
-          }
-        }
-      } catch (error) {
-        console.warn(`Proxy ${i + 1} failed for ${url}:`, error);
-        continue; // Try next proxy
-      }
-    }
-
-    // If all proxies failed and we haven't retried yet
-    if (retryCount === 0) {
-      console.log(`All proxies failed for ${url}, retrying once...`);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-      return fetchWithProxies(url, 1);
-    }
-
-    throw new Error(`Failed to fetch ${url} through all available proxies`);
-  };
-
-  // Phase 1: Sitemap Discovery and URL Collection
+  // PHASE 1: SITEMAP DISCOVERY AND URL COLLECTION
   const discoverAllUrls = async (initialUrl: string, overridePath?: string): Promise<Map<string, { lastMod: string }>> => {
     const sitemapQueue: string[] = [];
     const discoveredUrls = new Map<string, { lastMod: string }>();
@@ -94,16 +37,25 @@ export const useSitemapParser = (): UseSitemapParserResult => {
 
     // Initialize queue with discovery URLs
     const baseUrl = new URL(initialUrl).origin;
-    const paths = overridePath ? [overridePath, ...DEFAULT_SITEMAP_PATHS] : DEFAULT_SITEMAP_PATHS;
+    const paths = overridePath ? [overridePath] : [
+      '/wp-sitemap.xml', 
+      '/post-sitemap.xml', 
+      '/sitemap_index.xml', 
+      '/sitemap.xml',
+      '/sitemap1.xml',
+      '/page-sitemap.xml',
+      '/wp-sitemap-posts-post-1.xml',
+      '/wp-sitemap-posts-page-1.xml'
+    ];
     
     // Add all potential sitemap URLs to queue
     for (const path of paths) {
       sitemapQueue.push(`${baseUrl}${path}`);
     }
 
-    setProgress('🔍 Phase 1: Discovering sitemaps and collecting URLs...');
+    setProgress('🔍 PHASE 1: Quantum sitemap discovery initiated...');
 
-    // Recursive sitemap processing loop
+    // Recursive sitemap processing loop with enterprise-grade resilience
     while (sitemapQueue.length > 0) {
       const currentSitemapUrl = sitemapQueue.shift()!;
       
@@ -115,7 +67,7 @@ export const useSitemapParser = (): UseSitemapParserResult => {
       processedSitemaps.add(currentSitemapUrl);
       
       try {
-        setProgress(`📥 Fetching sitemap: ${new URL(currentSitemapUrl).pathname}`);
+        setProgress(`🚀 Quantum fetching: ${new URL(currentSitemapUrl).pathname}`);
         
         const xmlContent = await fetchWithProxies(currentSitemapUrl);
         const parser = new DOMParser();
@@ -128,13 +80,13 @@ export const useSitemapParser = (): UseSitemapParserResult => {
           continue;
         }
 
-        // Intelligent content detection
-        const sitemapElements = xmlDoc.querySelectorAll('sitemap loc');
-        const urlElements = xmlDoc.querySelectorAll('url');
+        // Intelligent content detection with advanced XML parsing
+        const sitemapElements = xmlDoc.querySelectorAll('sitemap loc, sitemapindex sitemap loc');
+        const urlElements = xmlDoc.querySelectorAll('url, urlset url');
 
         if (sitemapElements.length > 0) {
           // This is a sitemap index - add child sitemaps to queue
-          setProgress(`📚 Found sitemap index with ${sitemapElements.length} child sitemaps`);
+          setProgress(`📚 Sitemap index discovered: ${sitemapElements.length} nested sitemaps found`);
           
           sitemapElements.forEach(locElement => {
             const childSitemapUrl = locElement.textContent?.trim();
@@ -156,15 +108,15 @@ export const useSitemapParser = (): UseSitemapParserResult => {
               const pageUrl = locElement.textContent.trim();
               const lastMod = lastmodElement?.textContent?.trim() || new Date().toISOString();
               
-              // De-duplication via Map
-              if (!discoveredUrls.has(pageUrl)) {
+              // Advanced URL filtering and de-duplication
+              if (isValidContentUrl(pageUrl) && !discoveredUrls.has(pageUrl)) {
                 discoveredUrls.set(pageUrl, { lastMod });
               }
             }
           });
         }
 
-        setProgress(`✅ Processed ${processedSitemaps.size} sitemaps, found ${discoveredUrls.size} unique URLs`);
+        setProgress(`✅ Processed ${processedSitemaps.size} sitemaps → ${discoveredUrls.size} unique URLs`);
         
       } catch (error) {
         console.warn(`Failed to process sitemap ${currentSitemapUrl}:`, error);
@@ -176,42 +128,84 @@ export const useSitemapParser = (): UseSitemapParserResult => {
       throw new Error(`No URLs found in any sitemaps. Processed ${processedSitemaps.size} sitemap files.`);
     }
 
+    setProgress(`🎯 PHASE 1 COMPLETE: Discovered ${discoveredUrls.size} unique content URLs`);
     return discoveredUrls;
   };
 
-  // Phase 2: Concurrent Page Analysis
+  // Enhanced URL validation
+  const isValidContentUrl = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname.toLowerCase();
+      
+      // Exclude non-content URLs
+      const excludePatterns = [
+        '/wp-admin', '/wp-content', '/wp-includes', '/feed', '/comments',
+        '/author', '/category', '/tag', '/attachment', '/search',
+        '.xml', '.json', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif'
+      ];
+      
+      return !excludePatterns.some(pattern => path.includes(pattern));
+    } catch {
+      return false;
+    }
+  };
+
+  // PHASE 2: CONCURRENT PAGE ANALYSIS WITH QUANTUM PROCESSING
   const analyzePages = async (urlMap: Map<string, { lastMod: string }>) => {
     const urlEntries = Array.from(urlMap.entries());
     setTotalCount(urlEntries.length);
     setCrawledCount(0);
     
-    setProgress(`🚀 Phase 2: Analyzing ${urlEntries.length} pages with 8 concurrent workers...`);
+    setProgress(`⚡ PHASE 2: Quantum analysis of ${urlEntries.length} pages (50 concurrent workers)...`);
 
     const results: SitemapEntry[] = [];
+    const processedUrls = new Set<string>(); // Prevent duplicates
     
-    // Concurrent processing with worker pool
-    await processConcurrently(urlEntries, 8, async (urlEntry, index) => {
+    // Ultra-high concurrency processing (50 workers)
+    await processConcurrently(urlEntries, 50, async (urlEntry, index) => {
       const [url, { lastMod }] = urlEntry;
+      
+      // Skip if already processed (additional safety)
+      if (processedUrls.has(url)) {
+        setCrawledCount(prev => prev + 1);
+        return;
+      }
+      
+      processedUrls.add(url);
       
       try {
         const analysis = await analyzeIndividualPage(url, lastMod);
         
-        // Create sitemap entry
+        // Create sitemap entry with enhanced data
         const entry: SitemapEntry = {
           url: analysis.url,
           lastModified: analysis.lastModified,
-          priority: 0.5,
-          changeFreq: 'weekly'
+          priority: calculatePriority(analysis),
+          changeFreq: determineChangeFrequency(analysis),
+          title: analysis.title,
+          wordCount: analysis.wordCount,
+          isStale: analysis.isStale,
+          mainContent: analysis.mainContent.substring(0, 2000) // Store excerpt
         };
 
         results.push(entry);
         
-        // Live UI update
+        // Real-time UI update with progress
         setCrawledCount(prev => prev + 1);
-        setProgress(`📊 Analyzed ${index + 1}/${urlEntries.length}: ${analysis.title} (${analysis.wordCount} words)`);
+        setProgress(`📊 Analyzed ${index + 1}/${urlEntries.length}: "${analysis.title}" (${analysis.wordCount} words)`);
         
         // Update entries in real-time for immediate UI feedback
-        setEntries(prevEntries => [...prevEntries, entry]);
+        setEntries(prevEntries => {
+          const newEntries = [...prevEntries];
+          const existingIndex = newEntries.findIndex(e => e.url === entry.url);
+          if (existingIndex >= 0) {
+            newEntries[existingIndex] = entry;
+          } else {
+            newEntries.push(entry);
+          }
+          return newEntries;
+        });
         
       } catch (error) {
         console.warn(`Failed to analyze ${url}:`, error);
@@ -222,53 +216,102 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     return results;
   };
 
-  // Individual page analysis with intelligent content extraction
+  // Advanced page analysis with intelligent content extraction
   const analyzeIndividualPage = async (url: string, lastMod: string): Promise<PageAnalysis> => {
     const htmlContent = await fetchWithProxies(url);
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlContent, 'text/html');
 
-    // Extract title
+    // Smart title extraction with fallbacks
+    let title = '';
     const titleElement = doc.querySelector('title');
-    const title = titleElement?.textContent?.trim() || extractTitleFromUrl(url);
+    const h1Element = doc.querySelector('h1');
+    const ogTitle = doc.querySelector('meta[property="og:title"]');
+    
+    title = titleElement?.textContent?.trim() || 
+            h1Element?.textContent?.trim() || 
+            ogTitle?.getAttribute('content')?.trim() ||
+            extractTitleFromUrl(url);
 
-    // Intelligent content extraction - prioritize main content areas
-    let mainContentElement = 
-      doc.querySelector('main') ||
-      doc.querySelector('article') ||
-      doc.querySelector('[role="main"]') ||
-      doc.querySelector('.content') ||
-      doc.querySelector('.post-content') ||
-      doc.querySelector('.entry-content') ||
-      doc.body;
+    // Intelligent main content extraction with priority scoring
+    const contentSelectors = [
+      'main article',
+      'main .content',
+      'main .post-content',
+      'main .entry-content',
+      '.main-content article',
+      '.content-area article',
+      '.post-content',
+      '.entry-content',
+      'article',
+      'main',
+      '[role="main"]',
+      '.content',
+      '.single-post',
+      '.post'
+    ];
+
+    let mainContentElement = null;
+    for (const selector of contentSelectors) {
+      const element = doc.querySelector(selector);
+      if (element && element.textContent && element.textContent.trim().length > 100) {
+        mainContentElement = element;
+        break;
+      }
+    }
 
     if (!mainContentElement) {
       mainContentElement = doc.body;
     }
 
-    // Remove irrelevant elements
-    const elementsToRemove = mainContentElement.querySelectorAll('script, style, nav, header, footer, aside, .sidebar, .menu, .navigation, .comments');
-    elementsToRemove.forEach(el => el.remove());
+    // Remove noise elements with comprehensive cleaning
+    const noiseSelectors = [
+      'script', 'style', 'nav', 'header', 'footer', 'aside',
+      '.sidebar', '.menu', '.navigation', '.comments', '.comment',
+      '.social-share', '.related-posts', '.advertisement', '.ads',
+      '.cookie-notice', '.popup', '.modal', '.breadcrumb'
+    ];
 
-    // Extract clean text content
+    noiseSelectors.forEach(selector => {
+      const elements = mainContentElement!.querySelectorAll(selector);
+      elements.forEach(el => el.remove());
+    });
+
+    // Extract and clean content
     const mainContent = mainContentElement.textContent || '';
     const cleanContent = mainContent.replace(/\s+/g, ' ').trim();
     
-    // Calculate word count
+    // Accurate word count calculation
     const words = cleanContent.split(/\s+/).filter(word => word.length > 0);
     const wordCount = words.length;
 
-    // Stale content detection - check for past years in title
+    // Advanced staleness detection
     const currentYear = new Date().getFullYear();
     const yearMatches = title.match(/\b(19|20)\d{2}\b/g);
-    const isStale = yearMatches ? yearMatches.some(year => parseInt(year) < currentYear) : false;
+    const hasOldYear = yearMatches ? yearMatches.some(year => parseInt(year) < currentYear) : false;
+    
+    // Additional staleness indicators
+    const staleIndicators = [
+      'updated', 'last modified', 'published', 'copyright'
+    ];
+    const contentLower = cleanContent.toLowerCase();
+    const hasStaleContent = staleIndicators.some(indicator => {
+      const regex = new RegExp(`${indicator}\\s+(19|20)\\d{2}`, 'i');
+      const matches = contentLower.match(regex);
+      return matches && matches.some(match => {
+        const year = parseInt(match.match(/(19|20)\d{2}/)?.[0] || '0');
+        return year < currentYear;
+      });
+    });
 
-    // Age calculation
+    const isStale = hasOldYear || hasStaleContent;
+
+    // Enhanced last modified date
     const lastModified = lastMod || new Date().toISOString();
 
     return {
       url,
-      title,
+      title: title.substring(0, 200), // Prevent overly long titles
       wordCount,
       lastModified,
       isStale,
@@ -276,33 +319,55 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     };
   };
 
-  // Concurrent processing utility (8 parallel workers)
+  // Utility functions for enhanced analysis
+  const calculatePriority = (analysis: PageAnalysis): number => {
+    let priority = 0.5; // Default
+    
+    if (analysis.wordCount > 2000) priority += 0.2;
+    if (analysis.wordCount > 1000) priority += 0.1;
+    if (!analysis.isStale) priority += 0.1;
+    if (analysis.title.toLowerCase().includes('guide') || 
+        analysis.title.toLowerCase().includes('complete')) priority += 0.1;
+    
+    return Math.min(1.0, priority);
+  };
+
+  const determineChangeFrequency = (analysis: PageAnalysis): string => {
+    const daysSinceModified = (Date.now() - new Date(analysis.lastModified).getTime()) / (1000 * 60 * 60 * 24);
+    
+    if (daysSinceModified < 7) return 'daily';
+    if (daysSinceModified < 30) return 'weekly';
+    if (daysSinceModified < 90) return 'monthly';
+    return 'yearly';
+  };
+
+  // Ultra-fast concurrent processing with advanced worker pool
   const processConcurrently = async <T, R>(
     items: T[],
     concurrency: number,
     processor: (item: T, index: number) => Promise<R>
   ): Promise<R[]> => {
     const results: R[] = [];
-    const executing: Promise<void>[] = [];
+    let currentIndex = 0;
     
-    for (let i = 0; i < items.length; i++) {
-      const promise = processor(items[i], i).then(result => {
-        results[i] = result;
-      });
-      
-      executing.push(promise);
-      
-      if (executing.length >= concurrency) {
-        await Promise.race(executing);
-        executing.splice(executing.findIndex(p => p === promise), 1);
+    const workers = Array(concurrency).fill(null).map(async () => {
+      while (currentIndex < items.length) {
+        const index = currentIndex++;
+        if (index < items.length) {
+          try {
+            results[index] = await processor(items[index], index);
+          } catch (error) {
+            console.warn(`Worker failed on item ${index}:`, error);
+          }
+        }
       }
-    }
+    });
     
-    await Promise.all(executing);
-    return results;
+    await Promise.all(workers);
+    return results.filter(r => r !== undefined);
   };
 
-  // Extract title from URL fallback
+  // Enhanced title extraction from URL
   const extractTitleFromUrl = (url: string): string => {
     try {
       const urlObj = new URL(url);
@@ -312,7 +377,7 @@ export const useSitemapParser = (): UseSitemapParserResult => {
       return slug
         .replace(/-/g, ' ')
         .replace(/\b\w/g, l => l.toUpperCase())
-        .replace(/\.(html|php)$/i, '');
+        .replace(/\.(html|php|aspx?)$/i, '');
     } catch {
       return url;
     }
@@ -328,19 +393,19 @@ export const useSitemapParser = (): UseSitemapParserResult => {
     setTotalCount(0);
     
     try {
-      // Phase 1: Sitemap Discovery and URL Collection
+      // Phase 1: Quantum sitemap discovery
       const discoveredUrls = await discoverAllUrls(baseUrl, overridePath);
       
-      setProgress(`✅ Phase 1 Complete: Discovered ${discoveredUrls.size} unique URLs from all sitemaps`);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause for UX
+      setProgress(`🎯 PHASE 1 COMPLETE: ${discoveredUrls.size} unique URLs discovered`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Phase 2: Concurrent Page Analysis
+      // Phase 2: Concurrent quantum analysis
       await analyzePages(discoveredUrls);
       
-      setProgress(`🎉 Crawl Complete: Successfully analyzed ${discoveredUrls.size} pages with full content extraction`);
+      setProgress(`🚀 QUANTUM CRAWL COMPLETE: ${discoveredUrls.size} pages analyzed with military precision`);
       
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown crawling error occurred';
+      const errorMessage = err instanceof Error ? err.message : 'Quantum crawling protocol failed';
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {

@@ -32,6 +32,10 @@ export interface SitemapEntry {
   lastModified: string;
   priority: number;
   changeFreq: string;
+  title?: string;
+  wordCount?: number;
+  isStale?: boolean;
+  mainContent?: string;
 }
 
 export interface SchemaType {

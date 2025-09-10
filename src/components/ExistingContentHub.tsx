@@ -60,21 +60,27 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   // Convert sitemap entries to posts when entries change
   useEffect(() => {
     if (entries.length > 0) {
-      const convertedPosts: WordPressPost[] = entries.map((entry, index) => {
-        const title = extractTitleFromUrl(entry.url);
-        const isStale = entry.lastModified ? 
+      // Remove duplicates using URL as the key
+      const uniqueEntries = Array.from(
+        new Map(entries.map(entry => [entry.url, entry])).values()
+      );
+      
+      const convertedPosts: WordPressPost[] = uniqueEntries.map((entry, index) => {
+        const title = entry.title || extractTitleFromUrl(entry.url);
+        const isStale = entry.isStale || (entry.lastModified ? 
           new Date(entry.lastModified) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) : 
-          false;
+          false);
         
         return {
           id: index + 1,
           title,
           slug: entry.url.split('/').pop() || `post-${index + 1}`,
-          status: 'ready' as const,
+          status: 'idle' as const,
           lastModified: entry.lastModified || new Date().toISOString(),
-          wordCount: Math.floor(Math.random() * 2000) + 300, // This would be fetched from actual content
+          wordCount: entry.wordCount || 0,
           url: entry.url,
-          isStale
+          isStale,
+          mainContent: entry.mainContent
         };
       });
 
