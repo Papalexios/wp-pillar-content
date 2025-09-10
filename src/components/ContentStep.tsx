@@ -1,9 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-
-// Lazy load heavy components
-const StrategistHub = lazy(() => import('./StrategistHub.tsx'));
-const SingleArticleHub = lazy(() => import('./SingleArticleHub.tsx'));
-const ExistingContentHub = lazy(() => import('./ExistingContentHub.tsx'));
+import React from 'react';
+import { ExistingContentHub } from './ExistingContentHub';
 
 interface ContentStepProps {
   config: any;
@@ -39,25 +35,25 @@ export const ContentStep: React.FC<ContentStepProps> = ({ config, onComplete }) 
         </button>
       </div>
 
-      <Suspense fallback={
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '400px',
-          color: 'var(--text-light-color)'
-        }}>
-          <div className="spinner" style={{ width: '40px', height: '40px', marginRight: '1rem' }}></div>
-          Loading component...
+      {activeMode === 'strategist' && (
+        <div className="strategist-hub">
+          <h2>🧠 AI Strategist</h2>
+          <p>Coming soon - Advanced content strategy planning</p>
         </div>
-      }>
-        {activeMode === 'strategist' && (
-          <StrategistHub config={config} onComplete={onComplete} />
-        )}
-        {activeMode === 'single' && (
-          <SingleArticleHub config={config} onComplete={onComplete} />
-        )}
-        {activeMode === 'existing' && (
+      )}
+      {activeMode === 'single' && (
+        <div className="single-article-hub">
+          <h2>✍️ Single Article</h2>
+          <p>Coming soon - Individual article generation</p>
+        </div>
+      )}
+      {activeMode === 'existing' && (
+        <ExistingContentHub config={config} onComplete={onComplete} />
+      )}
+    </div>
+  );
+};
+
           <ExistingContentHub config={config} onComplete={onComplete} />
         )}
       </Suspense>
