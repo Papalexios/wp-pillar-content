@@ -53,10 +53,3 @@ export const ContentStep: React.FC<ContentStepProps> = ({ config, onComplete }) 
     </div>
   );
 };
-
-          <ExistingContentHub config={config} onComplete={onComplete} />
-        )}
-      </Suspense>
-    </div>
-  );
-};
