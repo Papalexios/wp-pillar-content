@@ -17,36 +17,188 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     
     setIsLoading(true);
     setError(null);
-    setProgress('Discovering sitemap...');
+    setProgress('🔍 Searching for sitemaps...');
     
     try {
-      // Simple sitemap crawling without workers for now
-      const sitemapUrl = `${config.wpSiteUrl}/sitemap.xml`;
-      const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(sitemapUrl)}`);
-      const xmlText = await response.text();
+      const baseUrl = config.wpSiteUrl.replace(/\/$/, '');
+      const sitemapPaths = [
+        '/wp-sitemap.xml',
+        '/sitemap.xml', 
+        '/sitemap_index.xml',
+        '/post-sitemap.xml',
+        '/wp-sitemap-posts-post-1.xml',
+        '/sitemap1.xml'
+      ];
       
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+      let foundPosts: WordPressPost[] = [];
+      let successfulSitemap = '';
       
-      const urls = Array.from(xmlDoc.querySelectorAll('url loc')).map((loc, index) => ({
-        id: index + 1,
-        title: `Article ${index + 1}`,
-        slug: `post-${index + 1}`,
-        status: 'idle' as const,
-        lastModified: new Date().toISOString(),
-        wordCount: Math.floor(Math.random() * 2000) + 500,
-        url: loc.textContent || '',
-        isStale: false
-      }));
+      // Try multiple sitemap URLs
+      for (const path of sitemapPaths) {
+        try {
+          const sitemapUrl = `${baseUrl}${path}`;
+          setProgress(`🔍 Trying: ${path}...`);
+          
+          // Try multiple proxies
+          const proxies = [
+            `https://corsproxy.io/?${encodeURIComponent(sitemapUrl)}`,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(sitemapUrl)}`,
+            sitemapUrl // Direct request
+          ];
+          
+          let xmlText = '';
+          let usedProxy = '';
+          
+          for (const proxyUrl of proxies) {
+            try {
+              setProgress(`📡 Fetching via proxy...`);
+              const response = await fetch(proxyUrl, { 
+                timeout: 10000,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (compatible; WP-Optimizer/1.0)'
+                }
+              });
+              
+              if (response.ok) {
+                xmlText = await response.text();
+                usedProxy = proxyUrl.includes('corsproxy') ? 'CorsProxy' : 
+                           proxyUrl.includes('allorigins') ? 'AllOrigins' : 'Direct';
+                break;
+              }
+            } catch (proxyError) {
+              console.warn(`Proxy failed: ${proxyUrl}`, proxyError);
+              continue;
+            }
+          }
+          
+          if (!xmlText) {
+            continue; // Try next sitemap path
+          }
+          
+          setProgress(`📋 Parsing XML (via ${usedProxy})...`);
+          
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+          
+          // Check for XML parsing errors
+          const parseError = xmlDoc.querySelector('parsererror');
+          if (parseError) {
+            console.warn(`XML parse error for ${path}:`, parseError.textContent);
+            continue;
+          }
+          
+          // Look for sitemap index first
+          const sitemaps = xmlDoc.querySelectorAll('sitemap loc, sitemapindex sitemap loc');
+          if (sitemaps.length > 0) {
+            setProgress(`📚 Found ${sitemaps.length} nested sitemaps...`);
+            // Process nested sitemaps
+            for (const sitemapLoc of Array.from(sitemaps).slice(0, 3)) { // Limit to first 3
+              try {
+                const nestedUrl = sitemapLoc.textContent?.trim();
+                if (nestedUrl) {
+                  const nestedResponse = await fetch(`https://corsproxy.io/?${encodeURIComponent(nestedUrl)}`);
+                  const nestedXml = await nestedResponse.text();
+                  const nestedDoc = parser.parseFromString(nestedXml, 'application/xml');
+                  const nestedUrls = nestedDoc.querySelectorAll('url loc');
+                  
+                  const nestedPosts = Array.from(nestedUrls)
+                    .map(loc => loc.textContent?.trim())
+                    .filter(url => url && isValidContentUrl(url))
+                    .slice(0, 20) // Limit to first 20
+                    .map((url, index) => createPostFromUrl(url!, foundPosts.length + index + 1));
+                    
+                  foundPosts.push(...nestedPosts);
+                }
+              } catch (nestedError) {
+                console.warn('Failed to process nested sitemap:', nestedError);
+              }
+            }
+          }
+          
+          // Look for direct URLs
+          const urlElements = xmlDoc.querySelectorAll('url loc, urlset url loc');
+          if (urlElements.length > 0) {
+            setProgress(`🔗 Found ${urlElements.length} URLs...`);
+            
+            const directPosts = Array.from(urlElements)
+              .map(loc => loc.textContent?.trim())
+              .filter(url => url && isValidContentUrl(url))
+              .slice(0, 50) // Limit to first 50
+              .map((url, index) => createPostFromUrl(url!, foundPosts.length + index + 1));
+              
+            foundPosts.push(...directPosts);
+          }
+          
+          if (foundPosts.length > 0) {
+            successfulSitemap = path;
+            break; // Found posts, stop trying other sitemaps
+          }
+          
+        } catch (pathError) {
+          console.warn(`Failed to process ${path}:`, pathError);
+          setProgress(`❌ ${path} failed, trying next...`);
+          continue;
+        }
+      }
       
-      setPosts(urls);
-      setProgress(`Found ${urls.length} URLs`);
+      if (foundPosts.length === 0) {
+        throw new Error(`No content found in any sitemap. Tried: ${sitemapPaths.join(', ')}\n\nMake sure your WordPress site has a public sitemap enabled.`);
+      }
+      
+      setPosts(foundPosts);
+      setProgress(`✅ Success! Found ${foundPosts.length} posts from ${successfulSitemap}`);
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch sitemap');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sitemap';
+      setError(`❌ Sitemap Discovery Failed:\n\n${errorMessage}\n\nTroubleshooting:\n• Check if ${config.wpSiteUrl} is accessible\n• Verify WordPress sitemap is enabled\n• Try accessing ${config.wpSiteUrl}/sitemap.xml manually`);
+      console.error('Sitemap fetch error:', err);
     } finally {
       setIsLoading(false);
     }
   }, [config.wpSiteUrl]);
+  
+  const isValidContentUrl = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname.toLowerCase();
+      
+      // Exclude admin, feeds, attachments, etc.
+      const excludePatterns = [
+        '/wp-admin', '/wp-content', '/wp-includes', '/feed', 
+        '/comments', '/author', '/category', '/tag', '/attachment',
+        '.xml', '.json', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif'
+      ];
+      
+      return !excludePatterns.some(pattern => path.includes(pattern)) && 
+             path.length > 1 && 
+             !path.endsWith('/');
+    } catch {
+      return false;
+    }
+  };
+  
+  const createPostFromUrl = (url: string, id: number): WordPressPost => {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+    const slug = pathParts[pathParts.length - 1] || `post-${id}`;
+    
+    // Extract title from URL slug
+    const title = slug
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace(/\.(html|php|aspx?)$/i, '');
+    
+    return {
+      id,
+      title: title || `Article ${id}`,
+      slug,
+      status: 'idle' as const,
+      lastModified: new Date().toISOString(),
+      wordCount: Math.floor(Math.random() * 2000) + 500,
+      url,
+      isStale: false
+    };
+  };
 
   const handleCreatePillar = async (url: string) => {
     try {
