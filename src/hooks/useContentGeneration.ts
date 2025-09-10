@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { ContentCluster, ContentBrief, EEATSignals, SchemaType } from '../types';
+import { useStreamingAI } from './useStreamingAI';
+import { cacheManager } from '../utils/cacheManager';
 
 interface GenerationOptions {
   includeInternalLinks?: boolean;
