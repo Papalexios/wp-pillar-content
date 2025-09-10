@@ -239,28 +239,23 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
         )
       );
       
-      // Generate premium pillar content
-      const generatedHtml = await generateBulkContent([url], {
-        contentType: 'pillar',
-        quantumQuality: true,
-        enableEEAT: config.enableAdvancedFeatures,
-        autoInternalLinking: config.enableAdvancedFeatures,
-        diverseSchema: config.enableAdvancedFeatures
-      });
+      // Generate premium pillar content (DO NOT PUBLISH YET)
+      const post = posts.find(p => p.url === url);
+      const generatedHtml = await generatePremiumPillarContent(url, post?.title || '');
       
-      // Create generated content entry
+      // Store generated content for editing (DO NOT PUBLISH TO WORDPRESS)
       const newGeneratedContent: GeneratedContent = {
         id: Date.now().toString(),
         url,
         title: posts.find(p => p.url === url)?.title || 'Generated Pillar Post',
-        content: generatedHtml || '<h1>Premium Pillar Content</h1><p>High-quality pillar content generated successfully.</p>',
+        content: generatedHtml,
         wordCount: generatedHtml ? generatedHtml.split(' ').length : 500,
         status: 'draft',
         generatedAt: new Date().toISOString()
       };
       
       setGeneratedContent(prev => [...prev, newGeneratedContent]);
-      setProgress(`✅ PREMIUM PILLAR COMPLETE: ${url} - Ready for review!`);
+      setProgress(`✅ PREMIUM PILLAR GENERATED: ${url} - Ready for editing and review!`);
       
       // Update post status to done
       setPosts(prevPosts => 
@@ -291,6 +286,122 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     }
   };
 
+  const generatePremiumPillarContent = async (url: string, title: string): Promise<string> => {
+    // Get all site posts for internal linking
+    const internalLinks = posts.slice(0, 20).map(post => ({
+      title: post.title,
+      url: post.url,
+      slug: post.slug
+    }));
+
+    const prompt = `🎯 MISSION: CREATE THE ULTIMATE HUMAN-WRITTEN PILLAR POST
+
+You are an expert content writer with 15+ years of experience. You've personally worked with thousands of clients, seen every strategy succeed and fail. You write content that feels completely human - with personal insights, real opinions, and critical thinking.
+
+TARGET URL: ${url}
+POST TITLE: ${title}
+
+🔥 CRITICAL REQUIREMENTS (MUST FOLLOW ALL):
+
+1. 100% HUMAN-WRITTEN CONTENT:
+   - Write like a seasoned expert sharing hard-earned wisdom
+   - Include personal anecdotes: "In my 15 years of experience..." "I've seen clients struggle with..."
+   - Share genuine opinions: "Honestly, I think..." "The truth is..." "Here's what most people get wrong..."
+   - Use conversational tone with personality
+   - Include critical thinking and contrarian viewpoints
+
+2. PREMIUM CONTENT STRUCTURE (3000+ WORDS):
+   - Shocking statistic hook that makes readers think "Holy shit!"
+   - Personal story/anecdote in introduction
+   - 8-12 main sections with deep expertise
+   - Personal insights in each section: "From my experience..." "I learned the hard way..."
+   - Comprehensive FAQ section
+   - Strong conclusion with personal recommendations
+
+3. INTERNAL LINKING MASTERY (6-12 LINKS):
+   Available internal links: ${JSON.stringify(internalLinks)}
+   
+   - Use rich, contextual anchor text (never "click here" or "read more")
+   - Examples: "advanced [topic] strategies", "comprehensive guide to [topic]", "proven [topic] techniques"
+   - Naturally weave into content flow
+   - Link to complementary topics and resources
+   - Place links where they add genuine value
+
+4. HUMAN AUTHENTICITY MARKERS:
+   - Personal pronouns: "I", "we", "my experience"
+   - Emotional language: "frustrating", "exciting", "game-changing"
+   - Casual interjections: "Look", "Here's the thing", "Honestly"
+   - Real-world examples and case studies
+   - Admit mistakes and lessons learned
+   - Share contrarian opinions backed by experience
+
+5. WORDPRESS-PERFECT FORMATTING:
+   - Clean semantic HTML only: <h2>, <h3>, <h4>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <a>
+   - NO custom CSS classes or inline styles
+   - Proper heading hierarchy (H2 → H3 → H4)
+   - Short paragraphs (2-3 sentences max)
+   - Scannable with lists and subheadings
+
+6. CRITICAL THINKING INTEGRATION:
+   - Challenge common assumptions
+   - Present multiple perspectives
+   - Analyze pros and cons objectively
+   - Question conventional wisdom
+   - Provide nuanced, thoughtful analysis
+
+EXAMPLE HUMAN-LIKE PHRASES TO INCLUDE:
+- "After working with hundreds of clients, I've noticed..."
+- "Here's what nobody talks about..."
+- "The biggest mistake I see people make is..."
+- "In my honest opinion..."
+- "I used to believe [X], but experience taught me..."
+- "Let me be blunt about this..."
+- "This might be controversial, but..."
+
+🎯 GOAL: Create content so human, engaging, and valuable that readers bookmark it, share it, and come back to reference it. Make it the definitive resource that establishes you as THE authority on this topic.
+
+Return ONLY the complete HTML content - clean, semantic markup ready for WordPress.`;
+
+    // Call AI service with premium prompt
+    return await generatePremiumContent(prompt);
+  };
+
+  const generatePremiumContent = async (prompt: string): Promise<string> => {
+    const apiKey = getApiKeyForProvider();
+    
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': document.title || 'WP Content Optimizer'
+      },
+      body: JSON.stringify({
+        model: config.openrouterModel || 'anthropic/claude-3.5-sonnet',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.8,
+        max_tokens: 8000
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Content generation failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || 'Content generation failed';
+  };
+
+  const getApiKeyForProvider = (): string => {
+    switch (config.selectedProvider) {
+      case 'openrouter': return config.openrouterApiKey;
+      case 'gemini': return config.geminiApiKey;
+      case 'openai': return config.openaiApiKey;
+      case 'anthropic': return config.anthropicApiKey;
+      default: return '';
+    }
+  };
   const handleEditContent = (content: GeneratedContent) => {
     setSelectedContent(content);
     setEditingContent(content.content);
@@ -302,7 +413,11 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     setGeneratedContent(prev => 
       prev.map(item => 
         item.id === selectedContent.id 
-          ? { ...item, content: editingContent, wordCount: editingContent.split(' ').length }
+          ? { 
+              ...item, 
+              content: editingContent, 
+              wordCount: editingContent.replace(/<[^>]+>/g, '').split(' ').length 
+            }
           : item
       )
     );
@@ -315,9 +430,15 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     try {
       setProgress(`📤 Publishing to WordPress: ${content.title}`);
       
-      // Here you would implement the actual WordPress API call
-      // For now, we'll simulate success
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get WordPress post ID from URL
+      const postId = await getPostIdFromUrl(content.url);
+      if (!postId) {
+        throw new Error('Could not find WordPress post ID for this URL');
+      }
+
+      // Update WordPress post with generated content
+      const authBase64 = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
+      await updateWordPressPost(postId, content.content, authBase64);
       
       setGeneratedContent(prev => 
         prev.map(item => 
@@ -334,6 +455,39 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     }
   };
 
+  const getPostIdFromUrl = async (url: string): Promise<number | null> => {
+    const slug = url.split('/').filter(Boolean).pop();
+    if (!slug) return null;
+
+    try {
+      const baseUrl = config.wpSiteUrl?.replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/wp-json/wp/v2/posts?slug=${slug}`);
+      if (!response.ok) return null;
+      
+      const posts = await response.json();
+      return posts.length > 0 ? posts[0].id : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const updateWordPressPost = async (postId: number, content: string, authBase64: string) => {
+    const baseUrl = config.wpSiteUrl?.replace(/\/$/, '');
+    const response = await fetch(`${baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${authBase64}`
+      },
+      body: JSON.stringify({
+        content: { raw: content }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update WordPress post: ${response.status}`);
+    }
+  };
   // Filter posts based on search and status
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -476,6 +630,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
               <div className="card-stats">
                 <span>📊 {content.wordCount.toLocaleString()} words</span>
                 <span>🕒 {new Date(content.generatedAt).toLocaleDateString()}</span>
+                <span>🔗 {(content.content.match(/<a /g) || []).length} internal links</span>
               </div>
               
               <div className="card-preview">
@@ -508,7 +663,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
           {generatedContent.length === 0 && (
             <div className="empty-state">
               <h3>🎯 No Content Generated Yet</h3>
-              <p>Generate some pillar content to see it appear here for editing and publishing.</p>
+              <p>Generate pillar content from your discovered posts. It will appear here for editing before publishing to WordPress.</p>
             </div>
           )}
         </div>
@@ -610,7 +765,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
                 ) : post.status === 'done' ? (
                   <>
                     <span className="btn-icon">✅</span>
-                    Pillar Created
+                    Ready to Edit
                   </>
                 ) : post.status === 'error' ? (
                   <>
@@ -620,7 +775,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
                 ) : (
                   <>
                     <span className="btn-icon">🚀</span>
-                    Generate Pillar
+                    Create Pillar Content
                   </>
                 )}
               </button>
