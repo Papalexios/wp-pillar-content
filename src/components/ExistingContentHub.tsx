@@ -228,7 +228,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     setGeneratingUrls(prev => new Set([...prev, url]));
     
     try {
-      setProgress(`🚀 Generating PREMIUM PILLAR content for: ${url}`);
+      setProgress(`🚀 Generating ULTRA-PREMIUM HUMAN-LIKE PILLAR content for: ${url}`);
       
       // Update post status to generating
       setPosts(prevPosts => 
@@ -255,7 +255,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
       };
       
       setGeneratedContent(prev => [...prev, newGeneratedContent]);
-      setProgress(`✅ PREMIUM PILLAR GENERATED: ${url} - Ready for editing and review!`);
+      setProgress(`✅ PILLAR CONTENT GENERATED! Opening content editor...`);
       
       // Update post status to done
       setPosts(prevPosts => 
@@ -265,6 +265,12 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
             : post
         )
       );
+      
+      // AUTOMATICALLY SWITCH TO GENERATED CONTENT VIEW FOR EDITING
+      setTimeout(() => {
+        setCurrentView('generated');
+        setProgress(`📝 Content ready for review and editing!`);
+      }, 1000);
       
     } catch (error) {
       console.error('Error creating pillar:', error);
@@ -294,73 +300,95 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
       slug: post.slug
     }));
 
-    const prompt = `🎯 MISSION: CREATE THE ULTIMATE HUMAN-WRITTEN PILLAR POST
+    const prompt = `🎯 CRITICAL MISSION: WRITE THE MOST VALUABLE, HUMAN-SOUNDING PILLAR POST EVER CREATED
 
-You are an expert content writer with 15+ years of experience. You've personally worked with thousands of clients, seen every strategy succeed and fail. You write content that feels completely human - with personal insights, real opinions, and critical thinking.
+You are a world-renowned content expert with 20+ years of hands-on experience. You've personally helped over 10,000 clients, witnessed every possible scenario, and learned from countless successes and failures. Your writing is so human, engaging, and valuable that readers bookmark it instantly and share it widely.
 
 TARGET URL: ${url}
 POST TITLE: ${title}
 
-🔥 CRITICAL REQUIREMENTS (MUST FOLLOW ALL):
+🔥 ULTRA-CRITICAL REQUIREMENTS (FAILURE IS NOT AN OPTION):
 
-1. 100% HUMAN-WRITTEN CONTENT:
-   - Write like a seasoned expert sharing hard-earned wisdom
-   - Include personal anecdotes: "In my 15 years of experience..." "I've seen clients struggle with..."
-   - Share genuine opinions: "Honestly, I think..." "The truth is..." "Here's what most people get wrong..."
-   - Use conversational tone with personality
-   - Include critical thinking and contrarian viewpoints
+1. 1000000% HUMAN-WRITTEN CONTENT (NEVER SOUND LIKE AI):
+   - Write like you're personally teaching your best friend
+   - Share real stories: "I remember working with a client who..." "One time, I made the mistake of..." "Here's what I learned the hard way..."
+   - Express genuine emotions: "This frustrates me..." "I get excited when..." "It breaks my heart to see..."
+   - Use casual language: "Look, here's the thing..." "Between you and me..." "I'll be brutally honest..."
+   - Include vulnerable moments: "I was wrong about..." "This took me years to figure out..." "I wish someone had told me..."
 
-2. PREMIUM CONTENT STRUCTURE (3000+ WORDS):
-   - Shocking statistic hook that makes readers think "Holy shit!"
-   - Personal story/anecdote in introduction
-   - 8-12 main sections with deep expertise
-   - Personal insights in each section: "From my experience..." "I learned the hard way..."
-   - Comprehensive FAQ section
-   - Strong conclusion with personal recommendations
+2. ULTRA-PREMIUM CONTENT STRUCTURE (3500+ WORDS):
+   - MIND-BLOWING opener: Start with a shocking, personal story or statistic
+   - Personal vulnerability: Share a mistake you made or lesson learned
+   - 10-15 main sections with deep, actionable insights
+   - Real case studies: "I had a client who..." with specific outcomes
+   - Personal opinions: "Most experts say X, but in my experience, Y works better..."
+   - Contrarian viewpoints: Challenge popular beliefs with your experience
+   - Comprehensive FAQ with honest, experience-based answers
+   - Strong conclusion with personal recommendations and next steps
 
-3. INTERNAL LINKING MASTERY (6-12 LINKS):
+3. ADVANCED INTERNAL LINKING SYSTEM (8-12 HIGH-QUALITY LINKS):
    Available internal links: ${JSON.stringify(internalLinks)}
    
-   - Use rich, contextual anchor text (never "click here" or "read more")
-   - Examples: "advanced [topic] strategies", "comprehensive guide to [topic]", "proven [topic] techniques"
-   - Naturally weave into content flow
-   - Link to complementary topics and resources
-   - Place links where they add genuine value
+   LINKING REQUIREMENTS:
+   - Use RICH anchor text: "proven SEO strategies that actually work", "comprehensive guide to content marketing", "advanced link building techniques I've tested"
+   - Natural integration: "When I teach clients about [advanced SEO strategies](link), I always start with..."
+   - Value-driven placement: Only link where it genuinely helps the reader
+   - Contextual relevance: Link to related topics that support your points
+   - MUST include 8-12 internal links minimum using rich anchor text
+   
+4. CRITICAL THINKING & PERSONAL EXPERIENCE INTEGRATION:
+   - Challenge conventional wisdom: "Everyone says X, but I've found Y works better because..."
+   - Share personal failures: "I made this mistake for 3 years before I realized..."
+   - Provide nuanced perspectives: "It depends on your situation. In my experience..."
+   - Question popular advice: "This sounds good in theory, but here's what actually happens..."
+   - Share behind-the-scenes insights: "What most people don't know is..."
 
-4. HUMAN AUTHENTICITY MARKERS:
-   - Personal pronouns: "I", "we", "my experience"
-   - Emotional language: "frustrating", "exciting", "game-changing"
-   - Casual interjections: "Look", "Here's the thing", "Honestly"
-   - Real-world examples and case studies
-   - Admit mistakes and lessons learned
-   - Share contrarian opinions backed by experience
+5. ULTIMATE HUMAN AUTHENTICITY MARKERS:
+   - Personal stories in every section: "I remember when..." "One client told me..." "My biggest mistake was..."
+   - Emotional investment: "This keeps me up at night..." "I'm passionate about..." "It drives me crazy when..."
+   - Vulnerable admissions: "I used to believe..." "I was completely wrong about..." "This humbled me..."
+   - Casual conversation: "Here's the deal..." "Let me break this down for you..." "Can I be real with you?"
+   - Real consequences: "This cost me $10,000..." "I lost a client because..." "It took me 2 years to recover from..."
 
-5. WORDPRESS-PERFECT FORMATTING:
-   - Clean semantic HTML only: <h2>, <h3>, <h4>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <a>
-   - NO custom CSS classes or inline styles
+6. PERFECT WORDPRESS FORMATTING (NEVER BREAK LAYOUTS):
+   - ONLY semantic HTML: <h2>, <h3>, <h4>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <a>
+   - ZERO custom CSS classes, inline styles, or JavaScript
    - Proper heading hierarchy (H2 → H3 → H4)
-   - Short paragraphs (2-3 sentences max)
+   - Short, scannable paragraphs (2-3 sentences maximum)
    - Scannable with lists and subheadings
+   - Clean, professional HTML that publishes perfectly
 
-6. CRITICAL THINKING INTEGRATION:
-   - Challenge common assumptions
-   - Present multiple perspectives
-   - Analyze pros and cons objectively
-   - Question conventional wisdom
-   - Provide nuanced, thoughtful analysis
+7. EXTREME VALUE & READABILITY:
+   - Every paragraph must teach something valuable
+   - Use simple words and short sentences (grade 8-10 reading level)
+   - Include actionable takeaways in every section
+   - Provide step-by-step guidance with real examples
+   - End each section with "What this means for you:" practical applications
 
-EXAMPLE HUMAN-LIKE PHRASES TO INCLUDE:
-- "After working with hundreds of clients, I've noticed..."
-- "Here's what nobody talks about..."
-- "The biggest mistake I see people make is..."
-- "In my honest opinion..."
-- "I used to believe [X], but experience taught me..."
-- "Let me be blunt about this..."
-- "This might be controversial, but..."
+MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
+- "After working with over 1,000 clients, I've learned that..."
+- "Here's what nobody talks about (but should)..."
+- "The biggest mistake I made early in my career was..."
+- "I'll be brutally honest with you..."
+- "This changed everything for me..."
+- "I wish someone had told me this 10 years ago..."
+- "Most experts will tell you X, but in my experience, Y actually works better..."
+- "I used to believe this too, until I discovered..."
+- "Can I share something that might be controversial?"
+- "One of my clients recently told me..."
+- "I remember the exact moment I realized..."
+- "This keeps me up at night..."
+- "I'm passionate about this because..."
+- "Here's what I've noticed after 20 years in this field..."
+- "Let me tell you about a client who changed my perspective..."
 
-🎯 GOAL: Create content so human, engaging, and valuable that readers bookmark it, share it, and come back to reference it. Make it the definitive resource that establishes you as THE authority on this topic.
+🎯 ULTIMATE GOAL: Create content so valuable, human, and engaging that readers:
+- Bookmark it immediately
+- Share it with colleagues
+- Reference it months later
+- Feel like they're learning from a trusted mentor
+- Take immediate action based on your advice
 
-Return ONLY the complete HTML content - clean, semantic markup ready for WordPress.`;
 
     // Call AI service with premium prompt
     return await generatePremiumContent(prompt);
@@ -634,6 +662,7 @@ Return ONLY the complete HTML content - clean, semantic markup ready for WordPre
               </div>
               
               <div className="card-preview">
+                <h4>Content Preview:</h4>
                 <div 
                   className="preview-text"
                   dangerouslySetInnerHTML={{ 
@@ -650,11 +679,17 @@ Return ONLY the complete HTML content - clean, semantic markup ready for WordPre
                   ✍️ Edit
                 </button>
                 <button 
+                  className="btn btn-secondary btn-small"
+                  onClick={() => navigator.clipboard.writeText(content.content)}
+                >
+                  📋 Copy HTML
+                </button>
+                <button 
                   className="btn btn-small"
                   onClick={() => handlePublishToWordPress(content)}
                   disabled={content.status === 'published'}
                 >
-                  {content.status === 'published' ? '✅ Published' : '📤 Publish'}
+                  {content.status === 'published' ? '✅ Published' : '📤 Publish to WordPress'}
                 </button>
               </div>
             </div>
@@ -662,8 +697,14 @@ Return ONLY the complete HTML content - clean, semantic markup ready for WordPre
           
           {generatedContent.length === 0 && (
             <div className="empty-state">
-              <h3>🎯 No Content Generated Yet</h3>
-              <p>Generate pillar content from your discovered posts. It will appear here for editing before publishing to WordPress.</p>
+              <h3>📝 Content Library Empty</h3>
+              <p>Your generated pillar content will appear here for review and editing before publishing to WordPress.</p>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setCurrentView('posts')}
+              >
+                ← Back to Post Discovery
+              </button>
             </div>
           )}
         </div>
