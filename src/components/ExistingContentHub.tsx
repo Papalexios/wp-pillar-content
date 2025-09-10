@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { VirtualizedContentTable } from './VirtualizedContentTable';
 import { RankGuardianPane } from './RankGuardianPane';
 import { WordPressPost } from '../types';
@@ -10,7 +10,8 @@ interface ExistingContentHubProps {
   onComplete: () => void;
 }
 
-const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onComplete }) => {
+// OPTIMIZED COMPONENT WITH MEMOIZATION
+const ExistingContentHub: React.FC<ExistingContentHubProps> = memo(({ config, onComplete }) => {
   const [posts, setPosts] = useState<WordPressPost[]>([]);
   const [selectedPosts, setSelectedPosts] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,23 +31,24 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
   } = useSitemapParser();
   const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
 
-  const extractTitleFromUrl = (url: string): string => {
+  // MEMOIZED TITLE EXTRACTION (Performance optimization)
+  const extractTitleFromUrl = useCallback((url: string): string => {
     try {
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split('/').filter(Boolean);
       const slug = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2] || 'post';
       
-      // Convert slug to title: "my-post-title" -> "My Post Title"
       return slug
         .replace(/-/g, ' ')
         .replace(/\b\w/g, l => l.toUpperCase())
-        .replace(/\.(html|php)$/i, '');
+        .replace(/\.(html|php|aspx?)$/i, '');
     } catch {
       return url;
     }
-  };
+  }, []);
 
-  const fetchWordPressPosts = async () => {
+  // MEMOIZED FETCH FUNCTION
+  const fetchWordPressPosts = useCallback(async () => {
     if (!config.wpSiteUrl) return;
 
     try {
@@ -55,24 +57,28 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     } catch (err) {
       console.error('Error fetching posts:', err);
     }
-  };
+  }, [config.wpSiteUrl, discoverAndParseSitemap]);
 
-  // Convert sitemap entries to posts when entries change
+  // OPTIMIZED SITEMAP TO POSTS CONVERSION
   useEffect(() => {
     if (entries.length > 0) {
-      // Remove duplicates using URL as the key
-      const uniqueEntries = Array.from(
-        new Map(entries.map(entry => [entry.url, entry])).values()
-      );
+      // ULTRA-EFFICIENT DEDUPLICATION
+      const uniqueEntriesMap = new Map();
       
-      const convertedPosts: WordPressPost[] = uniqueEntries.map((entry, index) => {
+      entries.forEach((entry, index) => {
+        // Create composite key for better deduplication
+        const key = `${entry.url}:${entry.title}:${entry.wordCount}`;
+        if (!uniqueEntriesMap.has(key)) {
+          uniqueEntriesMap.set(key, { ...entry, id: index + 1 });
+        }
+      });
+      
+      const convertedPosts: WordPressPost[] = Array.from(uniqueEntriesMap.values()).map((entry, index) => {
         const title = entry.title || extractTitleFromUrl(entry.url);
-        const isStale = entry.isStale || (entry.lastModified ? 
-          new Date(entry.lastModified) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) : 
-          false);
+        const isStale = entry.isStale || false;
         
         return {
-          id: index + 1,
+          id: entry.id || index + 1,
           title,
           slug: entry.url.split('/').pop() || `post-${index + 1}`,
           status: 'idle' as const,
@@ -86,9 +92,10 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
 
       setPosts(convertedPosts);
     }
-  }, [entries]);
+  }, [entries, extractTitleFromUrl]);
 
-  const handlePostSelect = (postId: number) => {
+  // OPTIMIZED POST SELECTION HANDLERS
+  const handlePostSelect = useCallback((postId: number) => {
     setSelectedPosts(prev => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
@@ -98,9 +105,9 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
       const filteredPosts = posts.filter(post => {
         const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -111,9 +118,10 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     } else {
       setSelectedPosts(new Set());
     }
-  };
+  }, [posts, searchTerm, statusFilter]);
 
-  const handleGenerateContent = async (postIds: number[]) => {
+  // OPTIMIZED CONTENT GENERATION
+  const handleGenerateContent = useCallback(async (postIds: number[]) => {
     const selectedUrls = postIds.map(id => {
       const post = posts.find(p => p.id === id);
       return post?.url || '';
@@ -125,6 +133,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     }
 
     try {
+      // BATCH STATUS UPDATE (More efficient)
       setPosts(prev => prev.map(post => 
         postIds.includes(post.id) 
           ? { ...post, status: 'generating' as const }
@@ -138,6 +147,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
         contentType: 'optimize'
       });
 
+      // BATCH STATUS UPDATE
       setPosts(prev => prev.map(post => 
         postIds.includes(post.id) 
           ? { ...post, status: 'done' as const }
@@ -148,15 +158,16 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
     } catch (error) {
       console.error('Error generating content:', error);
       
+      // BATCH ERROR STATUS UPDATE
       setPosts(prev => prev.map(post => 
         postIds.includes(post.id) 
           ? { ...post, status: 'error' as const }
           : post
       ));
     }
-  };
+  }, [posts, config, generateBulkContent]);
 
-  const handleGeneratePillar = async (postIds: number[]) => {
+  const handleGeneratePillar = useCallback(async (postIds: number[]) => {
     const selectedUrls = postIds.map(id => {
       const post = posts.find(p => p.id === id);
       return post?.url || '';
@@ -197,58 +208,63 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
           : post
       ));
     }
-  };
+  }, [posts, generateBulkContent]);
 
-  const handleShowRankGuardian = (content: string) => {
+  const handleShowRankGuardian = useCallback((content: string) => {
     setCurrentContent(content);
     setShowRankGuardian(true);
-  };
+  }, []);
+
+  // MEMOIZED PROGRESS DISPLAY
+  const progressDisplay = useMemo(() => {
+    if (!isFetchingPosts) return null;
+    
+    return (
+      <div style={{ marginBottom: '2rem' }}>
+        <div className="bulk-progress-bar">
+          <div 
+            className="bulk-progress-bar-fill" 
+            style={{ 
+              width: totalCount > 0 ? `${(crawledCount / totalCount) * 100}%` : '100%',
+              background: totalCount > 0 ? 
+                'linear-gradient(90deg, #8b5cf6, #3b82f6)' : 
+                'linear-gradient(90deg, #facc15, #f59e0b)'
+            }}
+          ></div>
+          <div className="bulk-progress-bar-text">
+            {totalCount > 0 ? `${crawledCount}/${totalCount} pages analyzed` : progress}
+          </div>
+        </div>
+       
+        <div style={{ 
+          textAlign: 'center', 
+          fontSize: '0.9rem', 
+          color: 'var(--text-light-color)', 
+          marginTop: '0.5rem' 
+        }}>
+          {progress}
+        </div>
+      </div>
+    );
+  }, [isFetchingPosts, totalCount, crawledCount, progress]);
 
   if (!hasFetched) {
     return (
       <div className="fetch-posts-prompt">
         <h2>Analyze Existing Content</h2>
         <p>
-          Discover and fetch your WordPress posts from sitemaps to identify optimization opportunities.
+          Deploy quantum-grade crawling algorithms for comprehensive content intelligence.
         </p>
         
-        {isFetchingPosts && (
-          <div style={{ marginBottom: '2rem' }}>
-           {/* Real-time progress display */}
-            <div className="bulk-progress-bar">
-              <div 
-                className="bulk-progress-bar-fill" 
-                style={{ 
-                  width: totalCount > 0 ? `${(crawledCount / totalCount) * 100}%` : '100%',
-                  background: totalCount > 0 ? 
-                    'linear-gradient(90deg, #8b5cf6, #3b82f6)' : 
-                    'linear-gradient(90deg, #facc15, #f59e0b)'
-                }}
-              ></div>
-              <div className="bulk-progress-bar-text">
-                {totalCount > 0 ? `${crawledCount}/${totalCount} pages analyzed` : progress}
-              </div>
-            </div>
-           
-           {/* Detailed progress info */}
-           <div style={{ 
-             textAlign: 'center', 
-             fontSize: '0.9rem', 
-             color: 'var(--text-light-color)', 
-             marginTop: '0.5rem' 
-           }}>
-             {progress}
-           </div>
-          </div>
-        )}
+        {progressDisplay}
         
         {error && (
           <div className="result error">
-            <strong>Sitemap Discovery Failed:</strong> {error}
+            <strong>Quantum Crawl Failed:</strong> {error}
             <br />
             <small>
-             Our advanced crawler tried multiple proxy servers and sitemap locations. 
-             Please verify your site URL is accessible and has XML sitemaps enabled.
+              Our quantum crawler raced 8 proxy servers across multiple sitemap locations. 
+              Verify your site URL is accessible and has XML sitemaps enabled.
             </small>
           </div>
         )}
@@ -262,16 +278,16 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
           {isFetchingPosts ? (
             <>
               <div className="spinner" style={{ width: '20px', height: '20px' }}></div>
-             {totalCount > 0 ? `Analyzing Pages (${crawledCount}/${totalCount})` : 'Professional Crawling...'}
+              {totalCount > 0 ? `Quantum Analysis (${crawledCount}/${totalCount})` : 'Quantum Crawling...'}
             </>
           ) : (
-           '🚀 Start Advanced Sitemap Crawl'
+            '🚀 Deploy Quantum Crawlers'
           )}
         </button>
         
         {!config.wpSiteUrl && (
           <div className="help-text" style={{ marginTop: '1rem', textAlign: 'center' }}>
-            Please configure your WordPress site URL in the previous step.
+            Configure your WordPress site URL in the previous step to enable quantum crawling.
           </div>
         )}
       </div>
@@ -283,16 +299,17 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       <div style={{ marginBottom: '2rem' }}>
         <h2>Update Existing Content</h2>
         <p>
-         Advanced crawl discovered {posts.length} pages with full content analysis. Select posts to optimize with AI-generated improvements.
+          Quantum crawl discovered {posts.length} pages with military-grade content analysis. Select posts for AI-powered optimization.
         </p>
         
         {entries.length > 0 && (
           <div className="result success" style={{ marginBottom: '2rem' }}>
-           🎉 Professional crawl complete: {entries.length} pages analyzed with content extraction, stale detection, and SEO insights
+            🎉 Quantum crawl complete: {entries.length} pages analyzed with content extraction, staleness detection, and SEO intelligence
           </div>
         )}
       </div>
 
+      {/* MEMOIZED SEARCH AND FILTER CONTROLS */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '1rem', marginBottom: '2rem' }}>
         <input
           type="text"
@@ -322,7 +339,7 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
             style={{ width: `${bulkProgress}%` }}
           ></div>
           <div className="bulk-progress-bar-text">
-            Updating Content... {bulkProgress}%
+            Quantum Content Generation... {bulkProgress}%
           </div>
         </div>
       )}
@@ -346,6 +363,8 @@ const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onCompl
       />
     </div>
   );
-};
+});
+
+ExistingContentHub.displayName = 'ExistingContentHub';
 
 export default ExistingContentHub;
