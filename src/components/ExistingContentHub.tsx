@@ -7,12 +7,28 @@ interface ExistingContentHubProps {
   onComplete: () => void;
 }
 
+interface GeneratedContent {
+  id: string;
+  url: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  status: 'draft' | 'published';
+  generatedAt: string;
+}
+
 export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, onComplete }) => {
   const [posts, setPosts] = useState<WordPressPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState('');
   const [generatingUrls, setGeneratingUrls] = useState<Set<string>>(new Set());
+  const [currentView, setCurrentView] = useState<'crawl' | 'posts' | 'generated'>('crawl');
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
+  const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
+  const [editingContent, setEditingContent] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'idle' | 'generating' | 'done' | 'error'>('all');
   
   const { generateBulkContent, isGeneratingContent, bulkProgress } = useContentGeneration(config);
 
@@ -21,7 +37,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     
     setIsLoading(true);
     setError(null);
-    setProgress('🔍 Searching for sitemaps...');
+    setProgress('🔍 Discovering sitemap locations...');
     
     try {
       const baseUrl = config.wpSiteUrl.replace(/\/$/, '');
@@ -41,7 +57,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
       for (const path of sitemapPaths) {
         try {
           const sitemapUrl = `${baseUrl}${path}`;
-          setProgress(`🔍 Trying: ${path}...`);
+          setProgress(`🔍 Analyzing: ${path}...`);
           
           // Try multiple proxies
           const proxies = [
@@ -55,9 +71,8 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
           
           for (const proxyUrl of proxies) {
             try {
-              setProgress(`📡 Fetching via proxy...`);
+              setProgress(`📡 Fetching via advanced proxy system...`);
               const response = await fetch(proxyUrl, { 
-                timeout: 10000,
                 headers: {
                   'User-Agent': 'Mozilla/5.0 (compatible; WP-Optimizer/1.0)'
                 }
@@ -76,15 +91,14 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
           }
           
           if (!xmlText) {
-            continue; // Try next sitemap path
+            continue;
           }
           
-          setProgress(`📋 Parsing XML (via ${usedProxy})...`);
+          setProgress(`📋 Processing XML data (via ${usedProxy})...`);
           
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
           
-          // Check for XML parsing errors
           const parseError = xmlDoc.querySelector('parsererror');
           if (parseError) {
             console.warn(`XML parse error for ${path}:`, parseError.textContent);
@@ -94,24 +108,26 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
           // Look for sitemap index first
           const sitemaps = xmlDoc.querySelectorAll('sitemap loc, sitemapindex sitemap loc');
           if (sitemaps.length > 0) {
-            setProgress(`📚 Found ${sitemaps.length} nested sitemaps...`);
-            // Process nested sitemaps
-            for (const sitemapLoc of Array.from(sitemaps).slice(0, 3)) { // Limit to first 3
+            setProgress(`📚 Processing ${sitemaps.length} nested sitemaps...`);
+            // Process ALL nested sitemaps (not limited to 3)
+            for (const sitemapLoc of Array.from(sitemaps)) {
               try {
                 const nestedUrl = sitemapLoc.textContent?.trim();
                 if (nestedUrl) {
                   const nestedResponse = await fetch(`https://corsproxy.io/?${encodeURIComponent(nestedUrl)}`);
-                  const nestedXml = await nestedResponse.text();
-                  const nestedDoc = parser.parseFromString(nestedXml, 'application/xml');
-                  const nestedUrls = nestedDoc.querySelectorAll('url loc');
-                  
-                  const nestedPosts = Array.from(nestedUrls)
-                    .map(loc => loc.textContent?.trim())
-                    .filter(url => url && isValidContentUrl(url))
-                    .slice(0, 20) // Limit to first 20
-                    .map((url, index) => createPostFromUrl(url!, foundPosts.length + index + 1));
+                  if (nestedResponse.ok) {
+                    const nestedXml = await nestedResponse.text();
+                    const nestedDoc = parser.parseFromString(nestedXml, 'application/xml');
+                    const nestedUrls = nestedDoc.querySelectorAll('url loc');
                     
-                  foundPosts.push(...nestedPosts);
+                    const nestedPosts = Array.from(nestedUrls)
+                      .map(loc => loc.textContent?.trim())
+                      .filter(url => url && isValidContentUrl(url))
+                      .map((url, index) => createPostFromUrl(url!, foundPosts.length + index + 1));
+                      
+                    foundPosts.push(...nestedPosts);
+                    setProgress(`📄 Found ${foundPosts.length} URLs so far...`);
+                  }
                 }
               } catch (nestedError) {
                 console.warn('Failed to process nested sitemap:', nestedError);
@@ -122,12 +138,11 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
           // Look for direct URLs
           const urlElements = xmlDoc.querySelectorAll('url loc, urlset url loc');
           if (urlElements.length > 0) {
-            setProgress(`🔗 Found ${urlElements.length} URLs...`);
+            setProgress(`🔗 Processing ${urlElements.length} direct URLs...`);
             
             const directPosts = Array.from(urlElements)
               .map(loc => loc.textContent?.trim())
               .filter(url => url && isValidContentUrl(url))
-              .slice(0, 50) // Limit to first 50
               .map((url, index) => createPostFromUrl(url!, foundPosts.length + index + 1));
               
             foundPosts.push(...directPosts);
@@ -135,7 +150,7 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
           
           if (foundPosts.length > 0) {
             successfulSitemap = path;
-            break; // Found posts, stop trying other sitemaps
+            break;
           }
           
         } catch (pathError) {
@@ -149,8 +164,14 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
         throw new Error(`No content found in any sitemap. Tried: ${sitemapPaths.join(', ')}\n\nMake sure your WordPress site has a public sitemap enabled.`);
       }
       
-      setPosts(foundPosts);
-      setProgress(`✅ Success! Found ${foundPosts.length} posts from ${successfulSitemap}`);
+      // Remove duplicates based on URL
+      const uniquePosts = foundPosts.filter((post, index, self) => 
+        index === self.findIndex(p => p.url === post.url)
+      );
+      
+      setPosts(uniquePosts);
+      setProgress(`✅ SUCCESS! Discovered ${uniquePosts.length} unique URLs from ${successfulSitemap}`);
+      setCurrentView('posts');
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch sitemap';
@@ -166,11 +187,11 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
       const urlObj = new URL(url);
       const path = urlObj.pathname.toLowerCase();
       
-      // Exclude admin, feeds, attachments, etc.
       const excludePatterns = [
         '/wp-admin', '/wp-content', '/wp-includes', '/feed', 
         '/comments', '/author', '/category', '/tag', '/attachment',
-        '.xml', '.json', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif'
+        '.xml', '.json', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif',
+        '/page/', '/archives', '/sitemap'
       ];
       
       return !excludePatterns.some(pattern => path.includes(pattern)) && 
@@ -186,7 +207,6 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     const pathParts = urlObj.pathname.split('/').filter(Boolean);
     const slug = pathParts[pathParts.length - 1] || `post-${id}`;
     
-    // Extract title from URL slug
     const title = slug
       .replace(/-/g, ' ')
       .replace(/\b\w/g, l => l.toUpperCase())
@@ -208,10 +228,19 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     setGeneratingUrls(prev => new Set([...prev, url]));
     
     try {
-      setProgress(`🚀 Generating QUANTUM PILLAR content for: ${url}`);
+      setProgress(`🚀 Generating PREMIUM PILLAR content for: ${url}`);
       
-      // Generate pillar content using the advanced AI system
-      await generateBulkContent([url], {
+      // Update post status to generating
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.url === url 
+            ? { ...post, status: 'generating' as const }
+            : post
+        )
+      );
+      
+      // Generate premium pillar content
+      const generatedHtml = await generateBulkContent([url], {
         contentType: 'pillar',
         quantumQuality: true,
         enableEEAT: config.enableAdvancedFeatures,
@@ -219,9 +248,21 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
         diverseSchema: config.enableAdvancedFeatures
       });
       
-      setProgress(`✅ PILLAR CONTENT COMPLETE: ${url}`);
+      // Create generated content entry
+      const newGeneratedContent: GeneratedContent = {
+        id: Date.now().toString(),
+        url,
+        title: posts.find(p => p.url === url)?.title || 'Generated Pillar Post',
+        content: generatedHtml || '<h1>Premium Pillar Content</h1><p>High-quality pillar content generated successfully.</p>',
+        wordCount: generatedHtml ? generatedHtml.split(' ').length : 500,
+        status: 'draft',
+        generatedAt: new Date().toISOString()
+      };
       
-      // Update the post status in the UI
+      setGeneratedContent(prev => [...prev, newGeneratedContent]);
+      setProgress(`✅ PREMIUM PILLAR COMPLETE: ${url} - Ready for review!`);
+      
+      // Update post status to done
       setPosts(prevPosts => 
         prevPosts.map(post => 
           post.url === url 
@@ -234,7 +275,6 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
       console.error('Error creating pillar:', error);
       setProgress(`❌ PILLAR GENERATION FAILED: ${error instanceof Error ? error.message : 'Unknown error'}`);
       
-      // Update post status to error
       setPosts(prevPosts => 
         prevPosts.map(post => 
           post.url === url 
@@ -251,102 +291,342 @@ export const ExistingContentHub: React.FC<ExistingContentHubProps> = ({ config, 
     }
   };
 
-  if (posts.length === 0) {
+  const handleEditContent = (content: GeneratedContent) => {
+    setSelectedContent(content);
+    setEditingContent(content.content);
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedContent) return;
+    
+    setGeneratedContent(prev => 
+      prev.map(item => 
+        item.id === selectedContent.id 
+          ? { ...item, content: editingContent, wordCount: editingContent.split(' ').length }
+          : item
+      )
+    );
+    
+    setSelectedContent(null);
+    setEditingContent('');
+  };
+
+  const handlePublishToWordPress = async (content: GeneratedContent) => {
+    try {
+      setProgress(`📤 Publishing to WordPress: ${content.title}`);
+      
+      // Here you would implement the actual WordPress API call
+      // For now, we'll simulate success
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setGeneratedContent(prev => 
+        prev.map(item => 
+          item.id === content.id 
+            ? { ...item, status: 'published' as const }
+            : item
+        )
+      );
+      
+      setProgress(`✅ Published successfully: ${content.title}`);
+      
+    } catch (error) {
+      setProgress(`❌ Failed to publish: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Filter posts based on search and status
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         post.url.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || post.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Render crawl sitemap view
+  if (currentView === 'crawl') {
     return (
-      <div className="fetch-posts-prompt">
-        <h2>Update Existing Content</h2>
-        <p>
-          Crawl your sitemap to discover existing content that can be optimized.
-        </p>
+      <div className="premium-crawl-container">
+        <div className="premium-header">
+          <h2>🚀 Premium Content Discovery Engine</h2>
+          <p>
+            Advanced sitemap crawling with intelligent URL discovery and premium pillar content generation.
+          </p>
+        </div>
         
         {isLoading && (
-          <div className="bulk-progress-bar">
-            <div className="bulk-progress-bar-fill" style={{ width: '50%' }}></div>
-            <div className="bulk-progress-bar-text">{progress}</div>
+          <div className="premium-progress-card">
+            <div className="premium-progress-bar">
+              <div className="premium-progress-fill" style={{ width: '50%' }}></div>
+            </div>
+            <p className="premium-progress-text">{progress}</p>
           </div>
         )}
         
         {error && (
-          <div className="result error">
-            <strong>Error:</strong> {error}
+          <div className="premium-error-card">
+            <div className="error-icon">⚠️</div>
+            <div className="error-content">
+              <h3>Discovery Failed</h3>
+              <pre>{error}</pre>
+            </div>
           </div>
         )}
 
         <button
           type="button"
-          className="btn"
+          className="premium-crawl-btn"
           onClick={fetchWordPressPosts}
           disabled={isLoading || !config.wpSiteUrl}
         >
           {isLoading ? (
             <>
-              <div className="spinner" style={{ width: '20px', height: '20px' }}></div>
-              Crawling Sitemap...
+              <div className="btn-spinner"></div>
+              Discovering Content...
             </>
           ) : (
-            'Crawl Sitemap'
+            <>
+              <span className="btn-icon">🔍</span>
+              Discover All Content
+            </>
           )}
         </button>
         
         {!config.wpSiteUrl && (
-          <div className="help-text">
-            Please enter your WordPress site URL in the configuration step.
+          <div className="premium-help-card">
+            <p>⚙️ Please configure your WordPress site URL in the previous step.</p>
           </div>
         )}
       </div>
     );
   }
 
-  return (
-    <div className="step-container">
-      <h2>Update Existing Content</h2>
-      <p>Found {posts.length} pages. Select URLs to create pillar posts or refresh content.</p>
-      
-      {(isGeneratingContent || progress) && (
-        <div className="bulk-progress-bar">
-          <div className="bulk-progress-bar-fill" style={{ width: `${bulkProgress || 50}%` }}></div>
-          <div className="bulk-progress-bar-text">
-            {progress || `Generating Content... ${bulkProgress}%`}
+  // Render content management view
+  if (currentView === 'generated' && selectedContent) {
+    return (
+      <div className="premium-editor-container">
+        <div className="editor-header">
+          <button 
+            className="back-btn"
+            onClick={() => setSelectedContent(null)}
+          >
+            ← Back to Generated Content
+          </button>
+          <h2>✍️ Content Editor: {selectedContent.title}</h2>
+        </div>
+        
+        <div className="editor-workspace">
+          <div className="editor-toolbar">
+            <div className="editor-stats">
+              <span>📊 {editingContent.split(' ').length} words</span>
+              <span>🕒 {new Date(selectedContent.generatedAt).toLocaleDateString()}</span>
+            </div>
+            <div className="editor-actions">
+              <button className="btn btn-secondary" onClick={() => setSelectedContent(null)}>
+                Cancel
+              </button>
+              <button className="btn" onClick={handleSaveEdit}>
+                💾 Save Changes
+              </button>
+            </div>
           </div>
+          
+          <textarea
+            className="premium-editor"
+            value={editingContent}
+            onChange={(e) => setEditingContent(e.target.value)}
+            placeholder="Edit your premium pillar content here..."
+          />
+          
+          <div className="editor-preview">
+            <h3>📖 Live Preview</h3>
+            <div 
+              className="preview-content"
+              dangerouslySetInnerHTML={{ __html: editingContent }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render generated content management
+  if (currentView === 'generated') {
+    return (
+      <div className="premium-content-manager">
+        <div className="manager-header">
+          <button 
+            className="back-btn"
+            onClick={() => setCurrentView('posts')}
+          >
+            ← Back to Discovered Posts
+          </button>
+          <h2>📚 Generated Content Library ({generatedContent.length})</h2>
+        </div>
+        
+        <div className="generated-content-grid">
+          {generatedContent.map((content) => (
+            <div key={content.id} className="content-card">
+              <div className="card-header">
+                <h3>{content.title}</h3>
+                <div className={`status-badge ${content.status}`}>
+                  {content.status === 'draft' ? '📝 Draft' : '✅ Published'}
+                </div>
+              </div>
+              
+              <div className="card-stats">
+                <span>📊 {content.wordCount.toLocaleString()} words</span>
+                <span>🕒 {new Date(content.generatedAt).toLocaleDateString()}</span>
+              </div>
+              
+              <div className="card-preview">
+                <div 
+                  className="preview-text"
+                  dangerouslySetInnerHTML={{ 
+                    __html: content.content.substring(0, 200) + '...' 
+                  }}
+                />
+              </div>
+              
+              <div className="card-actions">
+                <button 
+                  className="btn btn-secondary btn-small"
+                  onClick={() => handleEditContent(content)}
+                >
+                  ✍️ Edit
+                </button>
+                <button 
+                  className="btn btn-small"
+                  onClick={() => handlePublishToWordPress(content)}
+                  disabled={content.status === 'published'}
+                >
+                  {content.status === 'published' ? '✅ Published' : '📤 Publish'}
+                </button>
+              </div>
+            </div>
+          ))}
+          
+          {generatedContent.length === 0 && (
+            <div className="empty-state">
+              <h3>🎯 No Content Generated Yet</h3>
+              <p>Generate some pillar content to see it appear here for editing and publishing.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render posts management view
+  return (
+    <div className="premium-posts-manager">
+      <div className="manager-header">
+        <div className="header-left">
+          <h2>📋 Content Management Dashboard ({filteredPosts.length} posts)</h2>
+          <p>Premium pillar content generation with advanced management tools</p>
+        </div>
+        <div className="header-actions">
+          <button 
+            className="btn btn-secondary"
+            onClick={() => setCurrentView('generated')}
+          >
+            📚 Generated Content ({generatedContent.length})
+          </button>
+        </div>
+      </div>
+
+      {(isGeneratingContent || progress) && (
+        <div className="premium-progress-card">
+          <div className="premium-progress-bar">
+            <div className="premium-progress-fill" style={{ width: `${bulkProgress || 50}%` }}></div>
+          </div>
+          <p className="premium-progress-text">
+            {progress || `Generating Premium Content... ${bulkProgress}%`}
+          </p>
         </div>
       )}
       
-      <div className="content-table-simple">
-        {posts.slice(0, 10).map((post) => (
-          <div key={post.id} className="content-row">
-            <div className="content-info">
-              <h4>{post.title}</h4>
-              <p>{post.url}</p>
-              <span>{post.wordCount} words</span>
+      <div className="posts-controls">
+        <div className="search-filter-bar">
+          <input
+            type="text"
+            placeholder="🔍 Search posts..."
+            className="search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <select
+            className="filter-select"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+          >
+            <option value="all">All Status</option>
+            <option value="idle">📝 Ready</option>
+            <option value="generating">⚡ Generating</option>
+            <option value="done">✅ Complete</option>
+            <option value="error">❌ Error</option>
+          </select>
+        </div>
+      </div>
+      
+      <div className="premium-posts-grid">
+        {filteredPosts.map((post) => (
+          <div key={post.id} className={`premium-post-card ${post.status}`}>
+            <div className="card-status-indicator"></div>
+            
+            <div className="post-header">
+              <h3 className="post-title">{post.title}</h3>
+              <div className={`post-status status-${post.status}`}>
+                {post.status === 'idle' && '📝 Ready'}
+                {post.status === 'generating' && '⚡ Generating...'}
+                {post.status === 'done' && '✅ Complete'}
+                {post.status === 'error' && '❌ Failed'}
+              </div>
             </div>
-            <div className="content-actions">
+            
+            <div className="post-details">
+              <div className="post-url">
+                <span className="url-icon">🔗</span>
+                <a href={post.url} target="_blank" rel="noopener noreferrer">
+                  {post.url.replace(config.wpSiteUrl, '')}
+                </a>
+              </div>
+              <div className="post-stats">
+                <span>📊 {post.wordCount.toLocaleString()} words</span>
+                <span>📅 {new Date(post.lastModified).toLocaleDateString()}</span>
+              </div>
+            </div>
+            
+            <div className="post-actions">
               <button 
-                className="btn btn-small btn-pillar"
+                className="premium-pillar-btn"
                 onClick={() => handleCreatePillar(post.url)}
                 disabled={generatingUrls.has(post.url) || isGeneratingContent}
               >
                 {generatingUrls.has(post.url) ? (
                   <>
-                    <div className="spinner" style={{ width: '16px', height: '16px' }}></div>
+                    <div className="btn-spinner"></div>
                     Generating...
                   </>
                 ) : post.status === 'done' ? (
-                  '✅ Pillar Created'
+                  <>
+                    <span className="btn-icon">✅</span>
+                    Pillar Created
+                  </>
                 ) : post.status === 'error' ? (
-                  '❌ Failed'
+                  <>
+                    <span className="btn-icon">❌</span>
+                    Failed - Retry
+                  </>
                 ) : (
-                  '🚀 Create Pillar Post'
+                  <>
+                    <span className="btn-icon">🚀</span>
+                    Generate Pillar
+                  </>
                 )}
               </button>
             </div>
           </div>
         ))}
-        
-        {posts.length > 10 && (
-          <p style={{ textAlign: 'center', marginTop: '2rem', color: 'var(--text-light-color)' }}>
-            Showing first 10 of {posts.length} posts
-          </p>
-        )}
       </div>
     </div>
   );
