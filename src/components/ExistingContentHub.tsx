@@ -513,7 +513,7 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
     });
 
     if (!response.ok) {
-      throw new Error(\`Failed to update WordPress post: ${response.status}`);
+      throw new Error(`Failed to update WordPress post: ${response.status}`);
     }
   };
   
