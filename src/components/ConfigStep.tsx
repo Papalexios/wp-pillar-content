@@ -328,11 +328,12 @@ export const ConfigStep: React.FC<ConfigStepProps> = ({ onComplete, initialConfi
                     id="openrouterModel"
                     value={config.openrouterModel}
                     onChange={(e) => setConfig(prev => ({ ...prev, openrouterModel: e.target.value }))}
-                    placeholder="e.g., anthropic/claude-3.5-sonnet, openai/gpt-4o-mini"
+                    placeholder="e.g., anthropic/claude-3.5-sonnet"
                     required
                   />
                   <div className="help-text">
-                    Enter any OpenRouter model ID. Check OpenRouter's model list for available options.
+                    Enter any OpenRouter model ID. Popular options: anthropic/claude-3.5-sonnet, openai/gpt-4o-mini, anthropic/claude-3-haiku. 
+                    Check <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer">OpenRouter's model list</a> for current available models.
                   </div>
                 </div>
               </>
