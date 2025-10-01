@@ -266,42 +266,96 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: var(--space-3xl) auto;
+            margin: var(--space-3xl) auto var(--space-2xl);
             list-style: none;
-            max-width: 800px;
-            padding: var(--space-lg);
-            background: var(--bg-glass);
-            border-radius: var(--border-radius-lg);
+            max-width: 900px;
+            padding: var(--space-2xl);
+            background: linear-gradient(135deg, 
+                rgba(20, 20, 32, 0.9) 0%, 
+                rgba(30, 30, 50, 0.9) 50%, 
+                rgba(20, 20, 32, 0.9) 100%);
+            border-radius: var(--border-radius-xl);
             backdrop-filter: blur(20px);
-            border: var(--border-width) solid var(--border-color);
-            box-shadow: var(--shadow-md);
+            border: 2px solid transparent;
+            background-image: linear-gradient(135deg, rgba(20, 20, 32, 0.9), rgba(30, 30, 50, 0.9)), 
+                            linear-gradient(135deg, var(--neon-purple), var(--neon-blue), var(--neon-cyan));
+            background-origin: border-box;
+            background-clip: content-box, border-box;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.4),
+                0 10px 30px rgba(168, 85, 247, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
             animation: slideInRight 0.8s ease-out;
+            position: relative;
+            overflow: visible;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue), var(--neon-cyan));
+            border-radius: var(--border-radius-xl);
+            z-index: -1;
+            opacity: 0.3;
+            filter: blur(15px);
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23a855f7" fill-opacity="0.03"><circle cx="30" cy="30" r="1"/></g></svg>') repeat;
+            border-radius: var(--border-radius-xl);
+            pointer-events: none;
         }
 
         .progress-step {
             flex: 1;
             text-align: center;
             position: relative;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: var(--space-md);
-            border-radius: var(--border-radius-md);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: var(--space-lg);
+            border-radius: var(--border-radius-lg);
+            z-index: 2;
         }
 
         .progress-step:hover {
-            background: var(--bg-glass-hover);
-            transform: translateY(-2px);
+            background: linear-gradient(135deg, 
+                rgba(168, 85, 247, 0.1) 0%, 
+                rgba(59, 130, 246, 0.1) 50%, 
+                rgba(6, 182, 212, 0.1) 100%);
+            transform: translateY(-5px) scale(1.02);
+            backdrop-filter: blur(30px);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 
+                0 15px 35px rgba(168, 85, 247, 0.2),
+                0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         .progress-step::before {
             content: '';
             position: absolute;
-            top: 50%;
+            top: calc(50% - 1px);
             left: -50%;
             width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--border-color), transparent);
-            z-index: 0;
-            transition: all 0.4s ease;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.1), 
+                rgba(168, 85, 247, 0.3), 
+                rgba(255, 255, 255, 0.1), 
+                transparent);
+            z-index: 1;
+            transition: all 0.6s ease;
+            border-radius: 2px;
         }
 
         .progress-step:first-child::before {
@@ -309,59 +363,240 @@
         }
 
         .progress-step.completed::before {
-            background: linear-gradient(90deg, transparent, var(--neon-purple), transparent);
-            box-shadow: var(--glow-purple);
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--neon-cyan), 
+                var(--neon-blue), 
+                var(--neon-purple), 
+                transparent);
+            height: 4px;
+            box-shadow: 
+                0 0 10px rgba(168, 85, 247, 0.6),
+                0 0 20px rgba(59, 130, 246, 0.4),
+                0 0 30px rgba(6, 182, 212, 0.3);
+            animation: progressGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes progressGlow {
+            0% { 
+                box-shadow: 
+                    0 0 10px rgba(168, 85, 247, 0.4),
+                    0 0 20px rgba(59, 130, 246, 0.3),
+                    0 0 30px rgba(6, 182, 212, 0.2);
+            }
+            100% { 
+                box-shadow: 
+                    0 0 15px rgba(168, 85, 247, 0.8),
+                    0 0 30px rgba(59, 130, 246, 0.6),
+                    0 0 45px rgba(6, 182, 212, 0.4);
+            }
         }
 
         .step-circle {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-color);
-            margin: 0 auto var(--space-md);
+            background: linear-gradient(135deg, 
+                rgba(15, 15, 23, 0.9) 0%, 
+                rgba(25, 25, 40, 0.9) 50%, 
+                rgba(15, 15, 23, 0.9) 100%);
+            border: 3px solid transparent;
+            background-image: 
+                linear-gradient(135deg, rgba(15, 15, 23, 0.9), rgba(25, 25, 40, 0.9)), 
+                linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.3), rgba(6, 182, 212, 0.3));
+            background-origin: border-box;
+            background-clip: content-box, border-box;
+            margin: 0 auto var(--space-lg);
             display: flex;
             justify-content: center;
             align-items: center;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             position: relative;
-            z-index: 1;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(10px);
+            z-index: 3;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .step-circle::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue), var(--neon-cyan));
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0;
+            transition: all 0.6s ease;
+            filter: blur(15px);
+        }
+
+        .progress-step:hover .step-circle::before {
+            opacity: 0.4;
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 0.2;
+            }
+            50% { 
+                transform: scale(1.1);
+                opacity: 0.6;
+            }
         }
 
         .progress-step.active .step-circle {
             background: var(--gradient-primary);
+            background-image: none;
             color: white;
-            transform: scale(1.1);
-            animation: glow 2s ease-in-out infinite alternate;
-            box-shadow: var(--glow-purple);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            transform: scale(1.15);
+            box-shadow: 
+                0 0 30px rgba(168, 85, 247, 0.8),
+                0 0 60px rgba(59, 130, 246, 0.6),
+                0 0 90px rgba(6, 182, 212, 0.4),
+                0 15px 35px rgba(0, 0, 0, 0.4),
+                inset 0 2px 0 rgba(255, 255, 255, 0.2);
+            animation: activeGlow 3s ease-in-out infinite;
+            font-size: 1.4rem;
+            font-weight: 900;
+        }
+
+        @keyframes activeGlow {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 25px rgba(168, 85, 247, 0.6),
+                    0 0 50px rgba(59, 130, 246, 0.4),
+                    0 0 75px rgba(6, 182, 212, 0.3),
+                    0 15px 35px rgba(0, 0, 0, 0.4),
+                    inset 0 2px 0 rgba(255, 255, 255, 0.2);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 40px rgba(168, 85, 247, 1),
+                    0 0 80px rgba(59, 130, 246, 0.8),
+                    0 0 120px rgba(6, 182, 212, 0.6),
+                    0 20px 45px rgba(0, 0, 0, 0.5),
+                    inset 0 3px 0 rgba(255, 255, 255, 0.3);
+                transform: scale(1.2);
+            }
         }
 
         .progress-step.completed .step-circle {
-            background: var(--gradient-accent);
+            background: linear-gradient(135deg, 
+                var(--neon-green) 0%, 
+                var(--neon-cyan) 50%, 
+                var(--neon-blue) 100%);
+            background-image: none;
             color: white;
-            border-color: var(--neon-green);
-            box-shadow: var(--glow-cyan);
+            border: 3px solid rgba(16, 185, 129, 0.4);
+            font-size: 1.5rem;
+            font-weight: 900;
+            box-shadow: 
+                0 0 25px rgba(16, 185, 129, 0.8),
+                0 0 50px rgba(6, 182, 212, 0.6),
+                0 0 75px rgba(59, 130, 246, 0.4),
+                0 12px 30px rgba(0, 0, 0, 0.4),
+                inset 0 2px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .progress-step.completed .step-circle::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(135deg, 
+                rgba(16, 185, 129, 0.2) 0%, 
+                rgba(6, 182, 212, 0.2) 50%, 
+                rgba(59, 130, 246, 0.2) 100%);
+            animation: completedPulse 4s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes completedPulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 0.3;
+            }
+            50% { 
+                transform: scale(1.4);
+                opacity: 0;
+            }
         }
 
         .step-name {
-            font-weight: 600;
-            color: var(--text-muted);
-            font-size: 0.9rem;
+            font-weight: 700;
+            color: rgba(148, 163, 184, 0.9);
+            font-size: 1rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: color 0.3s ease;
+            letter-spacing: 0.1em;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--border-radius-sm);
+            backdrop-filter: blur(10px);
+        }
+
+        .step-name::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transform: translateX(-50%);
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 1px;
         }
 
         .progress-step.active .step-name {
-            color: var(--text-primary);
-            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 800;
+            font-size: 1.1rem;
+            text-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+            background: linear-gradient(135deg, 
+                rgba(168, 85, 247, 0.1) 0%, 
+                rgba(59, 130, 246, 0.1) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        .progress-step.active .step-name::before {
+            width: 100%;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
         }
 
         .progress-step.completed .step-name {
-            color: var(--neon-cyan);
+            color: rgba(6, 182, 212, 0.95);
+            font-weight: 800;
+            text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+            background: linear-gradient(135deg, 
+                rgba(16, 185, 129, 0.1) 0%, 
+                rgba(6, 182, 212, 0.1) 100%);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .progress-step.completed .step-name::before {
+            width: 100%;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+        }
+
+        .progress-step:hover .step-name {
+            color: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .progress-step:hover .step-name::before {
+            width: 80%;
         }
 
         /* Landing Page */
