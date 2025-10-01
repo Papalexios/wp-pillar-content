@@ -829,6 +829,15 @@ MANDATORY HUMAN PHRASES TO INCLUDE (USE 10-15 OF THESE):
       <div className="premium-posts-grid">
         {filteredPosts.map((post) => (
           <div key={post.id} className={`premium-post-card ${post.status}`}>
+            <div className="card-checkbox">
+              <input
+                type="checkbox"
+                checked={selectedPosts.has(post.id)}
+                onChange={() => handlePostSelect(post.id)}
+                style={{ marginRight: '0.5rem' }}
+              />
+            </div>
+            
             <div className="card-status-indicator"></div>
             
             <div className="post-header">
